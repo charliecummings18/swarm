@@ -87,29 +87,30 @@ public:
     
     
 // ALIGN    
-    std::pair<float,float> align(Boid& boid){
+    float align(Boid& boid){
         float tot_Xvel, tot_Yvel, steering_Xvel, steering_Yvel;
         
         std::vector<Boid> localBoids = neighbour(boid);
         
+
         for (int i = 0; i < m_numBoids; i++) {
             
 //           int curr_id = m_boids[i].getid();
-//            for (int j = 0; j < localBoids.size(); j++ ) {
+ //           for (int j = 0; j < localBoids.size(); j++ ) {
                 
- //               if ( curr_id == localBoids[j].getid() ) {
+//                if ( curr_id == localBoids[j].getid() ) {
                     
                     tot_Xvel += m_boids[i].getXvel();
                     tot_Yvel += m_boids[i].getYvel(); 
 //                }
                 
- //           }
+//            }
                     
         }
         steering_Xvel = (tot_Xvel / m_numBoids) - boid.getXvel();
         steering_Yvel = (tot_Yvel / m_numBoids) - boid.getYvel();
         
-        return std::make_pair(steering_Xvel, steering_Yvel);
+        return steering_Yvel;
     }    
 //
 
@@ -121,29 +122,32 @@ public:
         float timeLimit = 2;
         float X = boid.getX();
         float Y = boid.getY();
-        float Xvel, Yvel;
-//      std::ofstream data("boid_data.txt"); 
-//      data << "Bird Number: " << boid.getid() << "\n\n";
+        float Xvel = boid.getXvel();
+        float Yvel = boid.getXvel();
+        float alignXvel, alignYvel;
+//        std::ofstream data("boid_data.txt"); 
 //      #pragma omp parallel reduction (+:X, Y, t)
-        {
+//        {
+
         while (t < timeLimit) {
-            std::pair<float, float> alignVel= align(boid);
-            Xvel = alignVel.first;
-            Yvel = alignVel.second;
+            alignYvel = align(boid);
+//            Xvel += alignXvel;
+            Yvel += alignYvel;
             
 
-
+            printf("%5f \n",alignYvel);
             
             X += Xvel * dt;
             Y += Yvel * dt;
 
-            std::cout<< X << " " << Y <<'\n';
-//          data << X << " " << Y <<'\n';
+           
+ //           data << X << " " << Y <<'\n';
             
             boid.update(X, Y, Xvel, Yvel);
+    
             t+=0.1;
             }
-        }
+//       }
 //    data.close();
     }      
 };
@@ -180,7 +184,7 @@ int main(int argc, char *argv[]) {
     
     int threads = atoi(argv[1]);
     omp_set_num_threads( threads );
-    int numBirds{10}, k;
+    int numBirds{5}, k;
     double initial, final, t1, t2, t3;   
     
     initial = omp_get_wtime();
@@ -196,33 +200,19 @@ int main(int argc, char *argv[]) {
     t2 = omp_get_wtime();
     printf("Birds generate: %8.6f s\n",t2-initial);    
     
-    
-    for (int i = 0; i < numBirds ; i++) {
-        std::cout<< "Bird no:"<< i <<
-                    "   X: "<< birds.m_boids[i].getX() << 
-                    " Y: "<< birds.m_boids[i].getY() <<
-                    " Xvel: "<< birds.m_boids[i].getXvel() <<
-                    " Yvel: "<< birds.m_boids[i].getYvel() <<'\n';
-    }  
+
     
 // Advance the birds  
-    #pragma omp parallel private(k)
-    {
-        #pragma omp for
+//    #pragma omp parallel private(k)
+//    {
+//        #pragma omp for
         for (k = 0; k < numBirds; k++) {
             std::cout<<"Bird no: "<<k<<'\n';
             birds.advance(birds.m_boids[k]);
         }
-    }
+//    }
     
     
-        for (int i = 0; i < numBirds ; i++) {
-        std::cout<< "Bird no:"<< i <<
-                    "   X: "<< birds.m_boids[i].getX() << 
-                    " Y: "<< birds.m_boids[i].getY() <<
-                    " Xvel: "<< birds.m_boids[i].getXvel() <<
-                    " Yvel: "<< birds.m_boids[i].getYvel() <<'\n';
-        }
     t3 = omp_get_wtime();
     printf("Birds advance: %8.6f s\n",t3-initial);        
    
