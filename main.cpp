@@ -8,6 +8,12 @@
 #include <omp.h>
 #include <tuple>
 #include <cmath>
+#include <fstream>
+#include <string>
+
+
+
+
 class Boid {
         
 private: 
@@ -81,29 +87,29 @@ public:
     
     
 // ALIGN    
-    std::tuple<float,float> align(Boid& boid){
+    std::pair<float,float> align(Boid& boid){
         float tot_Xvel, tot_Yvel, steering_Xvel, steering_Yvel;
         
         std::vector<Boid> localBoids = neighbour(boid);
         
         for (int i = 0; i < m_numBoids; i++) {
             
-            int curr_id = m_boids[i].getid();
-            for (int j = 0; j < localBoids.size(); j++ ) {
+//           int curr_id = m_boids[i].getid();
+//            for (int j = 0; j < localBoids.size(); j++ ) {
                 
-                if ( curr_id == localBoids[j].getid() ) {
+ //               if ( curr_id == localBoids[j].getid() ) {
                     
                     tot_Xvel += m_boids[i].getXvel();
                     tot_Yvel += m_boids[i].getYvel(); 
-                }
+//                }
                 
-            }
+ //           }
                     
         }
         steering_Xvel = (tot_Xvel / m_numBoids) - boid.getXvel();
         steering_Yvel = (tot_Yvel / m_numBoids) - boid.getYvel();
         
-        return std::make_tuple(steering_Xvel, steering_Yvel);
+        return std::make_pair(steering_Xvel, steering_Yvel);
     }    
 //
 
@@ -112,30 +118,33 @@ public:
     
         float dt = 0.1;
         float t = 0;
-        float timeLimit = 5;
+        float timeLimit = 2;
         float X = boid.getX();
         float Y = boid.getY();
-        float Xvel, Yvel, alignXvel, alignYvel;
-        
-        #pragma omp parallel reduction (+:X, Y, t)
+        float Xvel, Yvel;
+//      std::ofstream data("boid_data.txt"); 
+//      data << "Bird Number: " << boid.getid() << "\n\n";
+//      #pragma omp parallel reduction (+:X, Y, t)
         {
         while (t < timeLimit) {
-            std::tie(alignXvel, alignYvel) = align(boid);
+            std::pair<float, float> alignVel= align(boid);
+            Xvel = alignVel.first;
+            Yvel = alignVel.second;
             
-            Xvel = alignXvel;
-            Yvel = alignYvel;
-            
+
+
             
             X += Xvel * dt;
             Y += Yvel * dt;
 
-            std::cout<< X << " "<< Y<<'\n';
+            std::cout<< X << " " << Y <<'\n';
+//          data << X << " " << Y <<'\n';
             
-            boid.update(X, Y, Xvel, Yvel );
+            boid.update(X, Y, Xvel, Yvel);
             t+=0.1;
             }
         }
-
+//    data.close();
     }      
 };
 
@@ -159,9 +168,7 @@ std::vector<Boid> Flock :: neighbour(Boid& boid) {
     return Neighbours;
 }
 
-
-
-
+    
 
 int main(int argc, char *argv[]) {
 
@@ -189,7 +196,14 @@ int main(int argc, char *argv[]) {
     t2 = omp_get_wtime();
     printf("Birds generate: %8.6f s\n",t2-initial);    
     
-
+    
+    for (int i = 0; i < numBirds ; i++) {
+        std::cout<< "Bird no:"<< i <<
+                    "   X: "<< birds.m_boids[i].getX() << 
+                    " Y: "<< birds.m_boids[i].getY() <<
+                    " Xvel: "<< birds.m_boids[i].getXvel() <<
+                    " Yvel: "<< birds.m_boids[i].getYvel() <<'\n';
+    }  
     
 // Advance the birds  
     #pragma omp parallel private(k)
@@ -200,6 +214,15 @@ int main(int argc, char *argv[]) {
             birds.advance(birds.m_boids[k]);
         }
     }
+    
+    
+        for (int i = 0; i < numBirds ; i++) {
+        std::cout<< "Bird no:"<< i <<
+                    "   X: "<< birds.m_boids[i].getX() << 
+                    " Y: "<< birds.m_boids[i].getY() <<
+                    " Xvel: "<< birds.m_boids[i].getXvel() <<
+                    " Yvel: "<< birds.m_boids[i].getYvel() <<'\n';
+        }
     t3 = omp_get_wtime();
     printf("Birds advance: %8.6f s\n",t3-initial);        
    
@@ -218,6 +241,7 @@ int main(int argc, char *argv[]) {
                     " Yvel: "<< birds.m_boids[i].getYvel() <<'\n';
     }   
 */
+    
     
     return 0;
     
