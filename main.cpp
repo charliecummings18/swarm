@@ -87,68 +87,72 @@ public:
     
     
 // ALIGN    
-    float align(Boid& boid){
-        float tot_Xvel, tot_Yvel, steering_Xvel, steering_Yvel;
+    std::pair<float,float> align(Boid& boid){
+        float tot_Xvel = 0;
+        float tot_Yvel = 0;
+        float steering_Xvel, steering_Yvel;
         
         std::vector<Boid> localBoids = neighbour(boid);
         
 
         for (int i = 0; i < m_numBoids; i++) {
             
-//           int curr_id = m_boids[i].getid();
- //           for (int j = 0; j < localBoids.size(); j++ ) {
+           int curr_id = m_boids[i].getid();
+            for (int j = 0; j < localBoids.size(); j++ ) {
                 
-//                if ( curr_id == localBoids[j].getid() ) {
+                if ( curr_id == localBoids[j].getid() ) {
                     
                     tot_Xvel += m_boids[i].getXvel();
                     tot_Yvel += m_boids[i].getYvel(); 
-//                }
+                }
                 
-//            }
+            }
                     
         }
         steering_Xvel = (tot_Xvel / m_numBoids) - boid.getXvel();
         steering_Yvel = (tot_Yvel / m_numBoids) - boid.getYvel();
         
-        return steering_Yvel;
+        return std::make_pair(steering_Xvel,steering_Yvel);
     }    
-//
 
 
-    void advance(Boid& boid) {
+
+    void advance(Boid& boid, std::string fileName) {
     
         float dt = 0.1;
         float t = 0;
-        float timeLimit = 2;
+        float timeLimit = 20;
         float X = boid.getX();
         float Y = boid.getY();
         float Xvel = boid.getXvel();
         float Yvel = boid.getXvel();
         float alignXvel, alignYvel;
-//        std::ofstream data("boid_data.txt"); 
+        
+        std::ofstream data(fileName); 
+        data << "X,Y"<<'\n';
 //      #pragma omp parallel reduction (+:X, Y, t)
 //        {
 
         while (t < timeLimit) {
-            alignYvel = align(boid);
-//            Xvel += alignXvel;
-            Yvel += alignYvel;
+            std::pair<float,float> alignVel = align(boid);
+            Xvel = alignVel.first;
+            Yvel = alignVel.second;
             
 
-            printf("%5f \n",alignYvel);
-            
+            printf("%5f %5f \n",X, Y);
+            data << X << ", " << Y <<'\n';            
             X += Xvel * dt;
             Y += Yvel * dt;
 
            
- //           data << X << " " << Y <<'\n';
+
             
             boid.update(X, Y, Xvel, Yvel);
     
             t+=0.1;
             }
 //       }
-//    data.close();
+    data.close();
     }      
 };
 
@@ -189,6 +193,10 @@ int main(int argc, char *argv[]) {
     
     initial = omp_get_wtime();
     
+    std::string fileName;
+    fileName = "boid_data.csv";
+    
+    
 // Create birds flock
     Flock birds{};
     birds.flockSize(numBirds);
@@ -208,7 +216,7 @@ int main(int argc, char *argv[]) {
 //        #pragma omp for
         for (k = 0; k < numBirds; k++) {
             std::cout<<"Bird no: "<<k<<'\n';
-            birds.advance(birds.m_boids[k]);
+            birds.advance(birds.m_boids[k], fileName);
         }
 //    }
     
