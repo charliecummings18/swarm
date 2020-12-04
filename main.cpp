@@ -121,11 +121,11 @@ public:
     
         float dt = 0.1;
         float t = 0;
-        float timeLimit = 20;
+        float timeLimit = TIME_LIMIT;
         float X = boid.getX();
         float Y = boid.getY();
-        float Xvel = boid.getXvel();
-        float Yvel = boid.getXvel();
+        float Xvel;
+        float Yvel;
         float alignXvel, alignYvel;
         
         std::ofstream data(fileName); 
@@ -137,7 +137,6 @@ public:
             std::pair<float,float> alignVel = align(boid);
             Xvel = alignVel.first;
             Yvel = alignVel.second;
-            
 
             printf("%5f %5f \n",X, Y);
             data << X << ", " << Y <<'\n';            
@@ -188,7 +187,7 @@ int main(int argc, char *argv[]) {
     
     int threads = atoi(argv[1]);
     omp_set_num_threads( threads );
-    int numBirds{5}, k;
+    int numBirds{NUM_BOIDS}, k;
     double initial, final, t1, t2, t3;   
     
     initial = omp_get_wtime();
