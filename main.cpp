@@ -90,7 +90,8 @@ public:
     std::pair<float,float> align(Boid& boid){
         float tot_Xvel = 0;
         float tot_Yvel = 0;
-        float steering_Xvel, steering_Yvel;
+        float steering_Xvel = 0;
+        float steering_Yvel = 0;
         
         std::vector<Boid> localBoids = neighbour(boid);
         
@@ -109,8 +110,13 @@ public:
             }
                     
         }
-        steering_Xvel = (tot_Xvel / m_numBoids) - boid.getXvel();
-        steering_Yvel = (tot_Yvel / m_numBoids) - boid.getYvel();
+        float desiredXvel = (tot_Xvel / localBoids.size());
+        float desiredYvel = (tot_Yvel / localBoids.size());
+        
+        if (desiredXvel != 0)
+            steering_Xvel = desiredXvel - boid.getXvel();
+        if (desiredYvel != 0)
+            steering_Yvel = desiredYvel - boid.getYvel();
         
         return std::make_pair(steering_Xvel,steering_Yvel);
     }    
@@ -119,21 +125,24 @@ public:
 
     void advance(Boid& boid, std::ofstream& file) {
         
-        float dt = TIME_STEP;
+
 
         float X = boid.getX();
         float Y = boid.getY();
-        float Xvel;
-        float Yvel;
+        float Xvel = boid.getXvel();
+        float Yvel = boid.getYvel();
         float alignXvel, alignYvel;
         
         std::pair<float,float> alignVel = align(boid);
-        Xvel = alignVel.first;
-        Yvel = alignVel.second;
+        if (boid.getid() == 1) {
+            printf("AlignXvel: %f, AlignYvel: %f, Xvel: %f, Yvel: %f\n",alignVel.first, alignVel.second, Xvel, Yvel);
+        }
+        Xvel += alignVel.first;
+        Yvel += alignVel.second;
         
         
-        X += Xvel * dt;
-        Y += Yvel * dt;
+        X += Xvel * TIME_STEP;
+        Y += Yvel * TIME_STEP;
 
            
 
@@ -147,7 +156,7 @@ public:
 
 std::vector<Boid> Flock :: neighbour(Boid& boid) {
     
-    float visibility = 10;
+
     std::vector<Boid> Neighbours;
     
     for (int i =0; i < m_numBoids; i++) {
@@ -157,7 +166,7 @@ std::vector<Boid> Flock :: neighbour(Boid& boid) {
         
         float distance = sqrt( pow(Xdist, 2.0) + pow(Ydist, 2.0 ) );
         
-        if (boid.getid() != m_boids[i].getid() && distance < visibility) {
+        if (boid.getid() != m_boids[i].getid() && distance < VISIBILITY) {
             Neighbours.push_back( m_boids[i] );
         }
         
