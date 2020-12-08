@@ -119,7 +119,7 @@ public:
 
     void advance(Boid& boid, std::string fileName) {
     
-        float dt = 0.1;
+        float dt = 0.01;
         float t = 0;
         float timeLimit = TIME_LIMIT;
         float X = boid.getX();
