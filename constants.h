@@ -6,6 +6,7 @@ const float HEIGHT = 10.0;
 const float WIDTH = 10.0;
 const float MAX_SPEED = 10.0;
 const float TIME_LIMIT = 2;
+const float TIME_STEP = 0.01;
 const int NUM_BOIDS = 10;
 
 #endif

@@ -117,41 +117,31 @@ public:
 
 
 
-    void advance(Boid& boid, std::string fileName) {
-    
-        float dt = 0.01;
-        float t = 0;
-        float timeLimit = TIME_LIMIT;
+    void advance(Boid& boid, std::ofstream& file) {
+        
+        float dt = TIME_STEP;
+
         float X = boid.getX();
         float Y = boid.getY();
         float Xvel;
         float Yvel;
         float alignXvel, alignYvel;
         
-        std::ofstream data(fileName); 
-        data << "X,Y"<<'\n';
-//      #pragma omp parallel reduction (+:X, Y, t)
-//        {
-
-        while (t < timeLimit) {
-            std::pair<float,float> alignVel = align(boid);
-            Xvel = alignVel.first;
-            Yvel = alignVel.second;
-
-            printf("%5f %5f \n",X, Y);
-            data << X << ", " << Y <<'\n';            
-            X += Xvel * dt;
-            Y += Yvel * dt;
+        std::pair<float,float> alignVel = align(boid);
+        Xvel = alignVel.first;
+        Yvel = alignVel.second;
+        
+        
+        X += Xvel * dt;
+        Y += Yvel * dt;
 
            
 
             
-            boid.update(X, Y, Xvel, Yvel);
-    
-            t+=0.1;
-            }
-//       }
-    data.close();
+        boid.update(X, Y, Xvel, Yvel);
+        
+
+       
     }      
 };
 
@@ -191,10 +181,10 @@ int main(int argc, char *argv[]) {
     double initial, final, t1, t2, t3;   
     
     initial = omp_get_wtime();
-    
+// Initialise data file
     std::string fileName;
     fileName = "boid_data.csv";
-    
+    std::ofstream data(fileName); 
     
 // Create birds flock
     Flock birds{};
@@ -206,18 +196,46 @@ int main(int argc, char *argv[]) {
     birds.generate();
     t2 = omp_get_wtime();
     printf("Birds generate: %8.6f s\n",t2-initial);    
+ 
     
+// Advance the birds   
+    
+    
+    if (omp_get_thread_num() == 0) {
+        for (int num = 0; num < NUM_BOIDS; num ++) 
+        {
+            data << "boid" + std::to_string(num) + ".x, boid" 
+                           + std::to_string(num) + ".y, ";
+        }
+        data << '\n';
+    }
 
     
-// Advance the birds  
-//    #pragma omp parallel private(k)
-//    {
-//        #pragma omp for
-        for (k = 0; k < numBirds; k++) {
-            std::cout<<"Bird no: "<<k<<'\n';
-            birds.advance(birds.m_boids[k], fileName);
+    float time = 0;
+  
+    while (time < TIME_LIMIT) {
+        if (omp_get_thread_num() == 0) {
+            for (int num = 0; num < NUM_BOIDS; num ++) {
+                data << birds.m_boids[num].getX() << "," 
+                     << birds.m_boids[num].getY() <<"," ;
+                
+            }
+            data << '\n';
         }
-//    }
+        
+    #pragma omp parallel private(k)
+    {
+        #pragma omp for
+        for (k = 0; k < numBirds; k++) {
+            birds.advance(birds.m_boids[k], data);
+        }
+    }
+    time += TIME_STEP;
+    }
+    
+    data.close();
+    
+    
     
     
     t3 = omp_get_wtime();
