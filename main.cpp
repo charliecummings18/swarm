@@ -88,11 +88,9 @@ public:
     
 // ALIGN    
     std::pair<float,float> align(Boid& boid){
-        float tot_Xvel = 0;
-        float tot_Yvel = 0;
-        float steering_Xvel = 0;
-        float steering_Yvel = 0;
-        
+        float tot_Xvel = 0,  tot_Yvel = 0, steering_Xvel = 0, 
+              steering_Yvel = 0, desiredXvel = 0, desiredYvel = 0;
+
         std::vector<Boid> localBoids = neighbour(boid);
         
 
@@ -110,8 +108,11 @@ public:
             }
                     
         }
-        float desiredXvel = (tot_Xvel / localBoids.size());
-        float desiredYvel = (tot_Yvel / localBoids.size());
+        if (localBoids.size() !=0)
+        {
+            desiredXvel = (tot_Xvel / localBoids.size());
+            desiredYvel = (tot_Yvel / localBoids.size());
+        }
         
         if (desiredXvel != 0)
             steering_Xvel = desiredXvel - boid.getXvel();
@@ -134,8 +135,8 @@ public:
         float alignXvel, alignYvel;
         
         std::pair<float,float> alignVel = align(boid);
-        if (boid.getid() == 1) {
-            printf("AlignXvel: %f, AlignYvel: %f, Xvel: %f, Yvel: %f\n",alignVel.first, alignVel.second, Xvel, Yvel);
+        if (boid.getid() == 0 ) {
+            //printf("AlignXvel: %f, AlignYvel: %f, Xvel: %f, Yvel: %f\n",alignVel.first, alignVel.second, Xvel, Yvel);
         }
         Xvel += alignVel.first;
         Yvel += alignVel.second;
@@ -179,7 +180,7 @@ std::vector<Boid> Flock :: neighbour(Boid& boid) {
 int main(int argc, char *argv[]) {
 
     if (argc < 2) {
-        printf("Usage: \n ./array [number of threads]\n");
+        printf("Usage: \n ./main [number of threads]\n");
         return 1;
     }
     
