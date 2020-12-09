@@ -91,6 +91,7 @@ public:
         float tot_Xvel = 0,  tot_Yvel = 0, steering_Xvel = 0, 
               steering_Yvel = 0, desiredXvel = 0, desiredYvel = 0;
 
+
         std::vector<Boid> localBoids = neighbour(boid);
         
 
@@ -115,13 +116,93 @@ public:
         }
         
         if (desiredXvel != 0)
-            steering_Xvel = desiredXvel - boid.getXvel();
+            steering_Xvel = (desiredXvel - boid.getXvel()) * ALIGN_FORCE;
         if (desiredYvel != 0)
-            steering_Yvel = desiredYvel - boid.getYvel();
+            steering_Yvel = (desiredYvel - boid.getYvel()) * ALIGN_FORCE;
         
-        return std::make_pair(steering_Xvel,steering_Yvel);
-    }    
 
+        return std::make_pair(steering_Xvel,steering_Yvel);
+    } 
+    
+// COHESION    
+    std::pair<float,float> cohesion(Boid& boid){
+        float tot_X = 0,  tot_Y = 0, steering_X = 0, 
+              steering_Y = 0, desiredX = 0, desiredY = 0;
+
+
+        std::vector<Boid> localBoids = neighbour(boid);
+        
+
+        for (int i = 0; i < m_numBoids; i++) {
+            
+           int curr_id = m_boids[i].getid();
+            for (int j = 0; j < localBoids.size(); j++ ) {
+                
+                if ( curr_id == localBoids[j].getid() ) {
+                    
+                    tot_X += m_boids[i].getX();
+                    tot_Y += m_boids[i].getY(); 
+                }
+                
+            }
+                    
+        }
+        if (localBoids.size() !=0)
+        {
+            desiredX = (tot_X / localBoids.size());
+            desiredY = (tot_Y / localBoids.size());
+        }
+        
+        if (desiredX != 0)
+            steering_X = (desiredX - boid.getX()) * COHESION_FORCE;
+        if (desiredY != 0)
+            steering_Y = (desiredY - boid.getY()) * COHESION_FORCE;
+        
+
+        return std::make_pair(steering_X,steering_Y);
+    }     
+
+// SEPERATION   
+    std::pair<float,float> seperation(Boid& boid){
+        float X_sep = 0,  Y_sep = 0,  X_repulsion= 0, 
+              Y_repulsion = 0, X_sep_av = 0, Y_sep_av = 0;
+        float distance;
+
+
+        std::vector<Boid> localBoids = neighbour(boid);
+        
+
+        for (int i = 0; i < m_numBoids; i++) {
+            
+           int curr_id = m_boids[i].getid();
+            for (int j = 0; j < localBoids.size(); j++ ) {
+                
+                if ( curr_id == localBoids[j].getid() ) {
+                    distance = sqrt( pow(boid.getX() - m_boids[i].getX(),2.0) +
+                                     pow(boid.getY() - m_boids[i].getY(),2.0) );
+                    
+                    X_sep += ( boid.getX() - m_boids[i].getX() ) / pow(distance,2.0);
+                    Y_sep += ( boid.getY() - m_boids[i].getY() ) / pow(distance,2.0);
+                }
+                
+            }
+        }
+        
+        if (localBoids.size() !=0)
+        {
+            X_sep_av = (X_sep / localBoids.size());
+            Y_sep_av = (Y_sep / localBoids.size());
+        }
+       
+        if (X_sep_av != 0)
+            X_repulsion = (X_sep_av - boid.getXvel()) * SEPERATION_FORCE;
+        if (Y_sep_av != 0)
+            Y_repulsion = (Y_sep_av - boid.getYvel()) * SEPERATION_FORCE;
+        
+
+        return std::make_pair(X_repulsion,Y_repulsion);
+    }     
+    
 
 
     void advance(Boid& boid, std::ofstream& file) {
@@ -132,20 +213,37 @@ public:
         float Y = boid.getY();
         float Xvel = boid.getXvel();
         float Yvel = boid.getYvel();
-        float alignXvel, alignYvel;
+        float magnitude;  
         
         std::pair<float,float> alignVel = align(boid);
+        std::pair<float,float> cohVel = cohesion(boid);
+        std::pair<float,float> sepVel = seperation(boid);       
         if (boid.getid() == 0 ) {
-            //printf("AlignXvel: %f, AlignYvel: %f, Xvel: %f, Yvel: %f\n",alignVel.first, alignVel.second, Xvel, Yvel);
+            //printf("Xvel: %f, Yvel: %f\n",sepVel.first, sepVel.second);
         }
-        Xvel += alignVel.first;
-        Yvel += alignVel.second;
+        Xvel += alignVel.first + cohVel.first + sepVel.first;
+        Yvel += alignVel.second + cohVel.second + sepVel.second;
+        
+        magnitude = sqrt( pow(Xvel,2.0) + pow(Yvel,2.0) );
+        
+        if (magnitude != 0)
+        {
+        Xvel = Xvel * (MAX_SPEED / magnitude);
+        Yvel = Yvel * (MAX_SPEED / magnitude);
+        }
         
         
         X += Xvel * TIME_STEP;
         Y += Yvel * TIME_STEP;
 
-           
+//      Reappear the other side of the box        
+        if (X > WIDTH || X < -WIDTH){
+            X = -X;
+        }
+        if (Y > HEIGHT || Y < -HEIGHT){
+            Y = -Y;
+        }
+
 
             
         boid.update(X, Y, Xvel, Yvel);
