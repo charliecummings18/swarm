@@ -12,19 +12,33 @@ cimport openmp
 def main():
     start_time = time.time()
     data = pd.read_csv("boid_data.csv")
+    
+    infoFile = pd.read_csv("infoFile.csv", header=None)
 
+    HEIGHT = float(infoFile.iloc[1][0])  
+    HEIGHT = int(HEIGHT)
+    
+    WIDTH = float(infoFile.iloc[1][1])
+    WIDTH = int(WIDTH)
+    TIME_LIMIT = float(infoFile.iloc[1][3])
+    TIME_STEP= float(infoFile.iloc[1][4])
+    
+    FRAMES = float(TIME_LIMIT/TIME_STEP)
+    FRAMES = int(FRAMES)
+    INTERVAL = int(TIME_STEP*1000)
+    
     fig = plt.figure()
-    ax = plt.axes(xlim=(-100, 100), ylim=(-100, 100))
+    ax = plt.axes(xlim=(-WIDTH,WIDTH ), ylim=(-HEIGHT, HEIGHT) )
 
 
-    particles, = ax.plot([], [], 'bo', ms=6)
+    particles, = ax.plot([], [], 'bo', ms=2)
 
 
     def init():
         particles.set_data([], [])
         return particles,
 
-
+    #t = np.linspace(0,1000,1)
     def animate(t):
 
         
@@ -39,7 +53,7 @@ def main():
 
         return particles,
 
-    anim = FuncAnimation(fig, animate, init_func=init, interval=100)
+    anim = FuncAnimation(fig, animate, init_func=init,  frames = FRAMES, interval=INTERVAL)
 
 
     

@@ -62,7 +62,7 @@ private:
 public:
     
     std::vector<Boid> m_boids; 
-    std::vector<Boid> neighbour(Boid& boid);
+    std::vector<Boid> neighbour(Boid& boid, const float visibility);
     void flockSize (int numBoids){
         m_numBoids = numBoids;
     }
@@ -92,7 +92,7 @@ public:
               steering_Yvel = 0, desiredXvel = 0, desiredYvel = 0;
 
 
-        std::vector<Boid> localBoids = neighbour(boid);
+        std::vector<Boid> localBoids = neighbour(boid, ALIGN_VISIBILITY);
         
 
         for (int i = 0; i < m_numBoids; i++) {
@@ -130,7 +130,7 @@ public:
               steering_Y = 0, desiredX = 0, desiredY = 0;
 
 
-        std::vector<Boid> localBoids = neighbour(boid);
+        std::vector<Boid> localBoids = neighbour(boid, COHESION_VISIBILITY);
         
 
         for (int i = 0; i < m_numBoids; i++) {
@@ -169,7 +169,7 @@ public:
         float distance;
 
 
-        std::vector<Boid> localBoids = neighbour(boid);
+        std::vector<Boid> localBoids = neighbour(boid, SEPERATION_VISIBILITY);
         
 
         for (int i = 0; i < m_numBoids; i++) {
@@ -178,8 +178,8 @@ public:
             for (int j = 0; j < localBoids.size(); j++ ) {
                 
                 if ( curr_id == localBoids[j].getid() ) {
-                    distance = sqrt( pow(boid.getX() - m_boids[i].getX(),2.0) +
-                                     pow(boid.getY() - m_boids[i].getY(),2.0) );
+                    distance = sqrt( pow((boid.getX() - m_boids[i].getX()),2.0) +
+                                     pow((boid.getY() - m_boids[i].getY()),2.0) );
                     
                     X_sep += ( boid.getX() - m_boids[i].getX() ) / pow(distance,2.0);
                     Y_sep += ( boid.getY() - m_boids[i].getY() ) / pow(distance,2.0);
@@ -200,7 +200,7 @@ public:
             Y_repulsion = (Y_sep_av - boid.getYvel()) * SEPERATION_FORCE;
         
 
-        return std::make_pair(X_repulsion,Y_repulsion);
+        return std::make_pair(X_repulsion, Y_repulsion);
     }     
     
 
@@ -211,18 +211,18 @@ public:
 
         float X = boid.getX();
         float Y = boid.getY();
-        float Xvel = boid.getXvel();
-        float Yvel = boid.getYvel();
+        float Xvel = 0;
+        float Yvel = 0;
         float magnitude;  
         
         std::pair<float,float> alignVel = align(boid);
         std::pair<float,float> cohVel = cohesion(boid);
         std::pair<float,float> sepVel = seperation(boid);       
         if (boid.getid() == 0 ) {
-            //printf("Xvel: %f, Yvel: %f\n",sepVel.first, sepVel.second);
+        //printf("Xsep: %f, Ysep: %f\n",sepVel.first, sepVel.second);
         }
-        Xvel += alignVel.first + cohVel.first + sepVel.first;
-        Yvel += alignVel.second + cohVel.second + sepVel.second;
+        Xvel += boid.getXvel() + alignVel.first + cohVel.first /*+ sepVel.first*/;
+        Yvel += boid.getYvel() + alignVel.second + cohVel.second/* + sepVel.second*/;
         
         magnitude = sqrt( pow(Xvel,2.0) + pow(Yvel,2.0) );
         
@@ -253,7 +253,7 @@ public:
     }      
 };
 
-std::vector<Boid> Flock :: neighbour(Boid& boid) {
+std::vector<Boid> Flock :: neighbour(Boid& boid, const float visibility) {
     
 
     std::vector<Boid> Neighbours;
@@ -265,7 +265,7 @@ std::vector<Boid> Flock :: neighbour(Boid& boid) {
         
         float distance = sqrt( pow(Xdist, 2.0) + pow(Ydist, 2.0 ) );
         
-        if (boid.getid() != m_boids[i].getid() && distance < VISIBILITY) {
+        if (boid.getid() != m_boids[i].getid() && distance < visibility) {
             Neighbours.push_back( m_boids[i] );
         }
         
@@ -293,6 +293,8 @@ int main(int argc, char *argv[]) {
     std::string fileName;
     fileName = "boid_data.csv";
     std::ofstream data(fileName); 
+// Initialise file with number of frames
+    std::ofstream infoFile("infoFile.csv");
     
 // Create birds flock
     Flock birds{};
@@ -307,6 +309,10 @@ int main(int argc, char *argv[]) {
  
     
 // Advance the birds   
+    
+    infoFile << "HEIGHT, WIDTH, MAX_SPEED, TIME_LIMIT, TIME_STEP, NUM_BOIDS,ALIGN_VISIBILITY, COHESION_VISIBILITY, SEPERATION_VISIBILITY, ALIGN_FORCE,  COHESION_FORCE, SEPERATION_FORCE\n";
+    
+    infoFile << std::to_string(HEIGHT) + "," + std::to_string(WIDTH) + "," + std::to_string(MAX_SPEED) + "," + std::to_string(TIME_LIMIT) + "," + std::to_string(TIME_STEP) + "," +  std::to_string(NUM_BOIDS) + "," + std::to_string(ALIGN_VISIBILITY) + "," + std::to_string(COHESION_VISIBILITY) + "," + std::to_string(SEPERATION_VISIBILITY) + "," + std::to_string(ALIGN_FORCE) +"," + std::to_string(COHESION_FORCE) + "," + std::to_string(SEPERATION_FORCE);
     
     
     if (omp_get_thread_num() == 0) {
