@@ -164,8 +164,7 @@ public:
 
 // SEPERATION   
     std::pair<float,float> seperation(Boid& boid){
-        float X_sep = 0,  Y_sep = 0,  X_repulsion= 0, 
-              Y_repulsion = 0, X_sep_av = 0, Y_sep_av = 0;
+        float X_sep = 0,  Y_sep = 0,  X_repulsion = 0, Y_repulsion = 0;
         float distance;
 
 
@@ -178,34 +177,30 @@ public:
             for (int j = 0; j < localBoids.size(); j++ ) {
                 
                 if ( curr_id == localBoids[j].getid() ) {
-                    distance = sqrt( pow((boid.getX() - m_boids[i].getX()),2.0) +
-                                     pow((boid.getY() - m_boids[i].getY()),2.0) );
+                    distance = sqrt( pow((boid.getX() - m_boids[i].getX()),2.0) + pow((boid.getY() - m_boids[i].getY()),2.0) );
+
                     
-                    X_sep += ( boid.getX() - m_boids[i].getX() ) / pow(distance,2.0);
-                    Y_sep += ( boid.getY() - m_boids[i].getY() ) / pow(distance,2.0);
+                    X_sep += ( boid.getX() - m_boids[i].getX() ) / pow(distance,1.0);
+                    Y_sep += ( boid.getY() - m_boids[i].getY() ) / pow(distance,1.0);
                 }
                 
             }
         }
-        
-        if (localBoids.size() !=0)
-        {
-            X_sep_av = (X_sep / localBoids.size());
-            Y_sep_av = (Y_sep / localBoids.size());
+
+        if (localBoids.size() !=0 && X_sep != 0){ 
+            X_repulsion = (X_sep - boid.getXvel()) * SEPERATION_FORCE;
+        }
+        if (localBoids.size() !=0 && Y_sep != 0){            
+            Y_repulsion = (Y_sep - boid.getYvel()) * SEPERATION_FORCE;
         }
        
-        if (X_sep_av != 0)
-            X_repulsion = (X_sep_av - boid.getXvel()) * SEPERATION_FORCE;
-        if (Y_sep_av != 0)
-            Y_repulsion = (Y_sep_av - boid.getYvel()) * SEPERATION_FORCE;
         
-
         return std::make_pair(X_repulsion, Y_repulsion);
     }     
     
 
 
-    void advance(Boid& boid, std::ofstream& file) {
+    void advance(Boid& boid, std::ofstream& file, int option) {
         
 
 
@@ -217,12 +212,28 @@ public:
         
         std::pair<float,float> alignVel = align(boid);
         std::pair<float,float> cohVel = cohesion(boid);
-        std::pair<float,float> sepVel = seperation(boid);       
-        if (boid.getid() == 0 ) {
-        //printf("Xsep: %f, Ysep: %f\n",sepVel.first, sepVel.second);
+        std::pair<float,float> sepVel = seperation(boid);  
+        
+        Xvel = boid.getXvel() + alignVel.first + cohVel.first + sepVel.first;
+        Yvel = boid.getYvel() + alignVel.second + cohVel.second + sepVel.second;
+        
+
+ //      Steer Away from the edges (Option 1)       
+        if (option == 0) {
+            
+            if (boid.getX() < BUFFER_ZONE - WIDTH){
+                Xvel += TURN_FORCE;
+            }
+            if (boid.getX() > WIDTH - BUFFER_ZONE){
+                Xvel -= TURN_FORCE;
+            }   
+            if (boid.getY() < BUFFER_ZONE - HEIGHT){
+                Yvel += TURN_FORCE;
+            }
+            if (boid.getY() > HEIGHT - BUFFER_ZONE){
+                Yvel -= TURN_FORCE;
+            } 
         }
-        Xvel += boid.getXvel() + alignVel.first + cohVel.first /*+ sepVel.first*/;
-        Yvel += boid.getYvel() + alignVel.second + cohVel.second/* + sepVel.second*/;
         
         magnitude = sqrt( pow(Xvel,2.0) + pow(Yvel,2.0) );
         
@@ -236,14 +247,17 @@ public:
         X += Xvel * TIME_STEP;
         Y += Yvel * TIME_STEP;
 
-//      Reappear the other side of the box        
-        if (X > WIDTH || X < -WIDTH){
-            X = -X;
-        }
-        if (Y > HEIGHT || Y < -HEIGHT){
-            Y = -Y;
+//      Reappear the other side of the box (Option 2)    
+        if (option == 1) {
+            if (X > WIDTH || X < -WIDTH){
+                X = -X;
+            }
+            if (Y > HEIGHT || Y < -HEIGHT){
+                Y = -Y;
+            }
         }
 
+            
 
             
         boid.update(X, Y, Xvel, Yvel);
@@ -270,6 +284,7 @@ std::vector<Boid> Flock :: neighbour(Boid& boid, const float visibility) {
         }
         
     }
+    
     return Neighbours;
 }
 
@@ -299,20 +314,20 @@ int main(int argc, char *argv[]) {
 // Create birds flock
     Flock birds{};
     birds.flockSize(numBirds);
-    t1 = omp_get_wtime();
-    printf("Birds create: %8.6f s\n",t1-initial); 
+//    t1 = omp_get_wtime();
+//    printf("Birds create: %8.6f s\n",t1-initial); 
     
 // Generate the flock of birds    
     birds.generate();
-    t2 = omp_get_wtime();
-    printf("Birds generate: %8.6f s\n",t2-initial);    
+//    t2 = omp_get_wtime();
+//    printf("Birds generate: %8.6f s\n",t2-initial);    
  
     
 // Advance the birds   
     
-    infoFile << "HEIGHT, WIDTH, MAX_SPEED, TIME_LIMIT, TIME_STEP, NUM_BOIDS,ALIGN_VISIBILITY, COHESION_VISIBILITY, SEPERATION_VISIBILITY, ALIGN_FORCE,  COHESION_FORCE, SEPERATION_FORCE\n";
+    infoFile << "HEIGHT, WIDTH, MAX_SPEED, TIME_LIMIT, TIME_STEP, NUM_BOIDS,ALIGN_VISIBILITY, COHESION_VISIBILITY, SEPERATION_VISIBILITY, ALIGN_FORCE,  COHESION_FORCE, SEPERATION_FORCE, NUM_BOIDS\n";
     
-    infoFile << std::to_string(HEIGHT) + "," + std::to_string(WIDTH) + "," + std::to_string(MAX_SPEED) + "," + std::to_string(TIME_LIMIT) + "," + std::to_string(TIME_STEP) + "," +  std::to_string(NUM_BOIDS) + "," + std::to_string(ALIGN_VISIBILITY) + "," + std::to_string(COHESION_VISIBILITY) + "," + std::to_string(SEPERATION_VISIBILITY) + "," + std::to_string(ALIGN_FORCE) +"," + std::to_string(COHESION_FORCE) + "," + std::to_string(SEPERATION_FORCE);
+    infoFile << std::to_string(HEIGHT) + "," + std::to_string(WIDTH) + "," + std::to_string(MAX_SPEED) + "," + std::to_string(TIME_LIMIT) + "," + std::to_string(TIME_STEP) + "," +  std::to_string(NUM_BOIDS) + "," + std::to_string(ALIGN_VISIBILITY) + "," + std::to_string(COHESION_VISIBILITY) + "," + std::to_string(SEPERATION_VISIBILITY) + "," + std::to_string(ALIGN_FORCE) +"," + std::to_string(COHESION_FORCE) + "," + std::to_string(SEPERATION_FORCE) + "," + std::to_string(NUM_BOIDS);
     
     
     if (omp_get_thread_num() == 0) {
@@ -341,7 +356,7 @@ int main(int argc, char *argv[]) {
     {
         #pragma omp for
         for (k = 0; k < numBirds; k++) {
-            birds.advance(birds.m_boids[k], data);
+            birds.advance(birds.m_boids[k], data, OPTION);
         }
     }
     time += TIME_STEP;
@@ -352,24 +367,13 @@ int main(int argc, char *argv[]) {
     
     
     
-    t3 = omp_get_wtime();
-    printf("Birds advance: %8.6f s\n",t3-initial);        
+//    t3 = omp_get_wtime();
+//    printf("Birds advance: %8.6f s\n",t3-initial);        
    
     
     final = omp_get_wtime();
     printf("Total Elapsed %8.6f s\n",final-initial); 
     
-
-    
-    /*
-    for (int i = 0; i < 1 ; i++) {
-        std::cout<< "Bird no:"<< i <<
-                    "   X: "<< birds.m_boids[i].getX() << 
-                    " Y: "<< birds.m_boids[i].getY() <<
-                    " Xvel: "<< birds.m_boids[i].getXvel() <<
-                    " Yvel: "<< birds.m_boids[i].getYvel() <<'\n';
-    }   
-*/
     
     
     return 0;
