@@ -193,7 +193,7 @@ public:
            int curr_id = m_boids[i].getid();
             for (int j = 0; j < localBoids.size(); j++ ) {
                 
-                if ( curr_id == localBoids[j].getid() ) {
+                if ( curr_id == localBoids[j].getid() && curr_id >= PREDATORS) {
                     distance = sqrt( pow((boid.getX() - m_boids[i].getX()),2.0) + pow((boid.getY() - m_boids[i].getY()),2.0) + pow((boid.getZ() - m_boids[i].getZ()),2.0));
 
                     
@@ -216,7 +216,47 @@ public:
         }       
         
         return std::make_tuple(X_repulsion, Y_repulsion, Z_repulsion);
-    }     
+    }
+    
+// PREDATOR
+    std::tuple<float,float,float> predator(Boid& boid){
+        float X_sep = 0,  Y_sep = 0,  Z_sep = 0, X_repulsion = 0, Y_repulsion = 0, Z_repulsion = 0;
+        float distance;
+
+
+        std::vector<Boid> localBoids = neighbour(boid, PREDATOR_VISIBILITY);
+        
+
+        for (int i = 0; i < m_numBoids; i++) {
+            
+           int curr_id = m_boids[i].getid();
+            for (int j = 0; j < localBoids.size(); j++ ) {
+                
+                if ( curr_id == localBoids[j].getid() && curr_id < PREDATORS) {
+                    
+                    distance = sqrt( pow((boid.getX() - m_boids[i].getX()),2.0) + pow((boid.getY() - m_boids[i].getY()),2.0) + pow((boid.getZ() - m_boids[i].getZ()),2.0));
+
+                    
+                    X_sep += ( boid.getX() - m_boids[i].getX() ) / pow(distance,1.0);
+                    Y_sep += ( boid.getY() - m_boids[i].getY() ) / pow(distance,1.0);
+                    Z_sep += ( boid.getZ() - m_boids[i].getZ() ) / pow(distance,1.0);                    
+                }
+                
+            }
+        }
+
+        if (localBoids.size() !=0 && X_sep != 0){ 
+            X_repulsion = (X_sep - boid.getXvel()) * SEPERATION_FORCE;
+        }
+        if (localBoids.size() !=0 && Y_sep != 0){            
+            Y_repulsion = (Y_sep - boid.getYvel()) * SEPERATION_FORCE;
+        }
+        if (localBoids.size() !=0 && Z_sep != 0){            
+            Z_repulsion = (Z_sep - boid.getZvel()) * SEPERATION_FORCE;
+        }       
+        
+        return std::make_tuple(X_repulsion, Y_repulsion, Z_repulsion);
+    }
     
 
 
@@ -234,11 +274,12 @@ public:
         
         std::tuple<float,float,float> alignVel = align(boid);
         std::tuple<float,float,float> cohVel = cohesion(boid);
-        std::tuple<float,float,float> sepVel = seperation(boid);  
+        std::tuple<float,float,float> sepVel = seperation(boid); 
+        std::tuple<float,float,float> predVel = predator(boid);        
         
-        Xvel = boid.getXvel() + std::get<0>(alignVel) + std::get<0>(cohVel) + std::get<0>(sepVel);
-        Yvel = boid.getYvel() + std::get<1>(alignVel) + std::get<1>(cohVel) + std::get<1>(sepVel);      
-        Zvel = boid.getZvel() + std::get<2>(alignVel) + std::get<2>(cohVel) + std::get<2>(sepVel);
+        Xvel = boid.getXvel() + std::get<0>(alignVel) + std::get<0>(cohVel) + std::get<0>(sepVel) + std::get<0>(predVel);
+        Yvel = boid.getYvel() + std::get<1>(alignVel) + std::get<1>(cohVel) + std::get<1>(sepVel) + std::get<1>(predVel);      
+        Zvel = boid.getZvel() + std::get<2>(alignVel) + std::get<2>(cohVel) + std::get<2>(sepVel) + std::get<2>(predVel);
         
  //      Steer Away from the edges (Option 1)       
         if (option == 0) {

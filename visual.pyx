@@ -28,7 +28,6 @@ def main():
     data = pd.read_csv("boid_data.csv")
     fig = plt.figure()
     ax = p3.Axes3D(fig)
-
     x_positions = data.iloc[0,::3].to_list()
 
     x_positions.pop(100)
@@ -50,15 +49,14 @@ def main():
 
     ax.set_zlim3d(-250.0, 250.0)
     ax.set_zlabel('Z')
-
+    
     points, = ax.plot(x, y, z, 'o', ms=2)
-    txt = fig.suptitle('')
+    txt = fig.suptitle('')  
+
 
     def update_points(t, x, y, z, points):
-        txt.set_text('Time: {:d} ms'.format(t)) # for debug purposes
+        txt.set_text('Time: {:d} ms'.format(t)) 
 
-        # calculate the new sets of coordinates here. The resulting arrays should have the same shape
-        # as the original x,y,z
         x_positions = data.iloc[t,::3].to_list()
         x_positions.pop(100)
         
@@ -74,11 +72,13 @@ def main():
         points.set_3d_properties(new_z, 'z')
         
         # return modified artists
+        
         return points,txt
+      
     
-    ani=animation.FuncAnimation(fig, update_points, frames=FRAMES, interval=INTERVAL, repeat = False, cache_frame_data = False, fargs=(x, y, z, points))
+    ani=animation.FuncAnimation(fig, update_points, frames=FRAMES, interval=INTERVAL, blit = False, cache_frame_data = False, fargs=(x, y, z, points))
     
-    ani.save('3Dboid.mp4', writer='ffmpeg')
+#    ani.save('3Dboid.mp4', writer='ffmpeg')
     plt.show()
     
     
