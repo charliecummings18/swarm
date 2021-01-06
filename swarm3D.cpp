@@ -152,7 +152,7 @@ public:
            int curr_id = m_boids[i].getid();
             for (int j = 0; j < localBoids.size(); j++ ) {
                 
-                if ( curr_id == localBoids[j].getid() ) {
+                if ( curr_id == localBoids[j].getid() && curr_id >= PREDATORS) {
                     
                     tot_X += m_boids[i].getX();
                     tot_Y += m_boids[i].getY(); 
@@ -284,22 +284,22 @@ public:
  //      Steer Away from the edges (Option 1)       
         if (option == 0) {
             
-            if (boid.getX() < BUFFER_ZONE - WIDTH){
-                Xvel += TURN_FORCE;
+            if (boid.getX() < (BUFFER_ZONE/100)*WIDTH - WIDTH){
+                Xvel += (TURN_FORCE/100)*WIDTH;
             }
-            if (boid.getX() > WIDTH - BUFFER_ZONE){
+            if (boid.getX() > WIDTH - (BUFFER_ZONE/100)*WIDTH){
                 Xvel -= TURN_FORCE;
             }   
-            if (boid.getY() < BUFFER_ZONE - HEIGHT){
+            if (boid.getY() < (BUFFER_ZONE/100)*HEIGHT - HEIGHT){
                 Yvel += TURN_FORCE;
             }
-            if (boid.getY() > HEIGHT - BUFFER_ZONE){
+            if (boid.getY() > HEIGHT - (BUFFER_ZONE/100)*HEIGHT){
                 Yvel -= TURN_FORCE;
             } 
-            if (boid.getZ() < BUFFER_ZONE - DEPTH){
+            if (boid.getZ() < (BUFFER_ZONE/100)*DEPTH - DEPTH){
                 Zvel += TURN_FORCE;
             }
-            if (boid.getZ() > DEPTH - BUFFER_ZONE){
+            if (boid.getZ() > DEPTH - (BUFFER_ZONE/100)*DEPTH){
                 Zvel -= TURN_FORCE;
             }            
         }
@@ -441,12 +441,6 @@ int main(int argc, char *argv[]) {
     
     data.close();
     
-    
-    
-    
-//    t3 = omp_get_wtime();
-//    printf("Birds advance: %8.6f s\n",t3-initial);        
-   
     
     final = omp_get_wtime();
     printf("Total Elapsed %8.6f s\n",final-initial); 

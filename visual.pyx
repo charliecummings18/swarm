@@ -41,16 +41,16 @@ def main():
     y=np.zeros(NUM_BOIDS)
     z=np.zeros(NUM_BOIDS)
 
-    ax.set_xlim3d(-400.0, 400.0)
+    ax.set_xlim3d(-400, 400)
     ax.set_xlabel('X')
 
-    ax.set_ylim3d(-250.0, 250.0)
+    ax.set_ylim3d(-400, 400)
     ax.set_ylabel('Y')
 
-    ax.set_zlim3d(-250.0, 250.0)
+    ax.set_zlim3d(-400, 400)
     ax.set_zlabel('Z')
     
-    points, = ax.plot(x, y, z, 'o', ms=2)
+    points, = ax.plot(x, y, z, 'o', ms=1)
     txt = fig.suptitle('')  
 
 
