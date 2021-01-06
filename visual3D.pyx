@@ -9,9 +9,9 @@ import time
 
 def main():
     start_time = time.time()
-    data = pd.read_csv("boid_data.csv")
+    data = pd.read_csv("boid_data3D.csv")
     
-    infoFile = pd.read_csv("infoFile.csv", header=None)
+    infoFile = pd.read_csv("infoFile3D.csv", header=None)
 
     cdef:
         int HEIGHT = int(float(infoFile.iloc[1][0]))  

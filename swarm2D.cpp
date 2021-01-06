@@ -19,45 +19,37 @@ class Boid {
 private: 
     float m_X{};
     float m_Y{};
-    float m_Z{};
         
     float m_Xvel{};
     float m_Yvel{};
-    float m_Zvel{};
     
     int m_id{};
 public:    
     Boid() : m_X{WIDTH/2},
              m_Y{HEIGHT/2},
-             m_Z{DEPTH/2},
              m_Xvel{}, 
-             m_Yvel{},
-             m_Zvel{}
+             m_Yvel{}
              
     {
     }
     
-    Boid(float x, float y, float z, float xVel, float yVel, float zVel, int id)
-        :m_X{x}, m_Y{y}, m_Z{z}, m_Xvel{xVel}, m_Yvel{yVel}, m_Zvel{zVel}, m_id{id}
+    Boid(float x, float y, float xVel, float yVel, int id)
+        :m_X{x}, m_Y{y}, m_Xvel{xVel}, m_Yvel{yVel}, m_id{id}
     {
     }
     
-    void update(float x, float y, float z, float xVel, float yVel, float zVel) {
+    void update(float x, float y, float xVel, float yVel) {
         
         m_X = x;
-        m_Y = y;
-        m_Z = z;        
+        m_Y = y;      
         m_Xvel = xVel;
-        m_Yvel = yVel;
-        m_Zvel = zVel;        
+        m_Yvel = yVel;      
     }
     
     float getX()  {return m_X;}
-    float getY()  {return m_Y;}
-    float getZ()  {return m_Z;}    
+    float getY()  {return m_Y;}  
     float getXvel()  {return m_Xvel;}   
-    float getYvel()  {return m_Yvel;}
-    float getZvel()  {return m_Zvel;}    
+    float getYvel()  {return m_Yvel;}  
     int getid() const {return m_id;}
     
 };
@@ -77,7 +69,7 @@ public:
     }
     
     void generate() {
-        float X, Y, Z, Xvel, Yvel, Zvel;
+        float X, Y, Xvel, Yvel;
         int i;
         unsigned int seed = 88;
         std::srand(seed); 
@@ -85,22 +77,20 @@ public:
             for (i = 0; i < m_numBoids ; i++) {
                 
                 X = static_cast<float>(std::rand())*2*WIDTH/RAND_MAX - WIDTH;
-                Y = static_cast<float>(std::rand())*2*HEIGHT/RAND_MAX - HEIGHT;
-                Z = static_cast<float>(std::rand())*2*DEPTH/RAND_MAX - DEPTH;               
+                Y = static_cast<float>(std::rand())*2*HEIGHT/RAND_MAX - HEIGHT;              
                 Xvel = static_cast<float>(std::rand())*2*MAX_SPEED/RAND_MAX - MAX_SPEED; 
                 Yvel = static_cast<float>(std::rand())*2*MAX_SPEED/RAND_MAX - MAX_SPEED;
-                Zvel = static_cast<float>(std::rand())*2*MAX_SPEED/RAND_MAX - MAX_SPEED;
                 
-                m_boids.push_back(Boid(X, Y, Z, Xvel, Yvel, Zvel, i));
+                m_boids.push_back(Boid(X, Y, Xvel, Yvel, i));
             }
     }
     
     
     
 // ALIGN    
-    std::tuple<float,float, float> align(Boid& boid){
-        float tot_Xvel = 0,  tot_Yvel = 0, tot_Zvel = 0, steering_Xvel = 0, 
-              steering_Yvel = 0, steering_Zvel = 0, desiredXvel = 0, desiredYvel = 0, desiredZvel = 0;
+    std::tuple<float,float> align(Boid& boid){
+        float tot_Xvel = 0,  tot_Yvel = 0, steering_Xvel = 0, 
+              steering_Yvel = 0, desiredXvel = 0, desiredYvel = 0;
 
 
         std::vector<Boid> localBoids = neighbour(boid, ALIGN_VISIBILITY);
@@ -114,8 +104,7 @@ public:
                 if ( curr_id == localBoids[j].getid() ) {
                     
                     tot_Xvel += m_boids[i].getXvel();
-                    tot_Yvel += m_boids[i].getYvel(); 
-                    tot_Zvel += m_boids[i].getZvel();                     
+                    tot_Yvel += m_boids[i].getYvel();               
                 }
                 
             }
@@ -124,24 +113,21 @@ public:
         if (localBoids.size() !=0)
         {
             desiredXvel = (tot_Xvel / localBoids.size());
-            desiredYvel = (tot_Yvel / localBoids.size());
-            desiredZvel = (tot_Zvel / localBoids.size());            
+            desiredYvel = (tot_Yvel / localBoids.size());         
         }
         
         if (desiredXvel != 0)
             steering_Xvel = (desiredXvel - boid.getXvel()) * ALIGN_FORCE;
         if (desiredYvel != 0)
-            steering_Yvel = (desiredYvel - boid.getYvel()) * ALIGN_FORCE;
-         if (desiredZvel != 0)
-            steering_Zvel = (desiredZvel - boid.getZvel()) * ALIGN_FORCE;       
+            steering_Yvel = (desiredYvel - boid.getYvel()) * ALIGN_FORCE;   
 
-        return std::make_tuple(steering_Xvel,steering_Yvel,steering_Zvel);
+        return std::make_tuple(steering_Xvel,steering_Yvel);
     } 
     
 // COHESION    
-    std::tuple<float,float, float> cohesion(Boid& boid){
-        float tot_X = 0,  tot_Y = 0, tot_Z = 0, steering_X = 0, 
-              steering_Y = 0, steering_Z = 0, desiredX = 0, desiredY = 0, desiredZ = 0;
+    std::tuple<float,float> cohesion(Boid& boid){
+        float tot_X = 0,  tot_Y = 0, steering_X = 0, 
+              steering_Y = 0, desiredX = 0, desiredY = 0;
 
 
         std::vector<Boid> localBoids = neighbour(boid, COHESION_VISIBILITY);
@@ -155,8 +141,7 @@ public:
                 if ( curr_id == localBoids[j].getid() && curr_id >= PREDATORS) {
                     
                     tot_X += m_boids[i].getX();
-                    tot_Y += m_boids[i].getY(); 
-                    tot_Z += m_boids[i].getZ();                    
+                    tot_Y += m_boids[i].getY();                   
                 }
                 
             }
@@ -165,23 +150,20 @@ public:
         if (localBoids.size() !=0)
         {
             desiredX = (tot_X / localBoids.size());
-            desiredY = (tot_Y / localBoids.size());
-            desiredZ = (tot_Z / localBoids.size());           
+            desiredY = (tot_Y / localBoids.size());         
         }
         
         if (desiredX != 0)
             steering_X = (desiredX - boid.getX()) * COHESION_FORCE;
         if (desiredY != 0)
-            steering_Y = (desiredY - boid.getY()) * COHESION_FORCE;
-        if (desiredZ != 0)
-            steering_Z = (desiredZ - boid.getZ()) * COHESION_FORCE;        
+            steering_Y = (desiredY - boid.getY()) * COHESION_FORCE;       
 
-        return std::make_tuple(steering_X,steering_Y,steering_Z);
+        return std::make_tuple(steering_X,steering_Y);
     }     
 
 // SEPERATION   
-    std::tuple<float,float,float> seperation(Boid& boid){
-        float X_sep = 0,  Y_sep = 0,  Z_sep = 0, X_repulsion = 0, Y_repulsion = 0, Z_repulsion = 0;
+    std::tuple<float,float> seperation(Boid& boid){
+        float X_sep = 0,  Y_sep = 0, X_repulsion = 0, Y_repulsion = 0;
         float distance;
 
 
@@ -194,12 +176,11 @@ public:
             for (int j = 0; j < localBoids.size(); j++ ) {
                 
                 if ( curr_id == localBoids[j].getid() && curr_id >= PREDATORS) {
-                    distance = sqrt( pow((boid.getX() - m_boids[i].getX()),2.0) + pow((boid.getY() - m_boids[i].getY()),2.0) + pow((boid.getZ() - m_boids[i].getZ()),2.0));
+                    distance = sqrt( pow((boid.getX() - m_boids[i].getX()),2.0) + pow((boid.getY() - m_boids[i].getY()),2.0));
 
                     
                     X_sep += ( boid.getX() - m_boids[i].getX() ) / pow(distance,1.0);
-                    Y_sep += ( boid.getY() - m_boids[i].getY() ) / pow(distance,1.0);
-                    Z_sep += ( boid.getZ() - m_boids[i].getZ() ) / pow(distance,1.0);                    
+                    Y_sep += ( boid.getY() - m_boids[i].getY() ) / pow(distance,1.0);                    
                 }
                 
             }
@@ -210,17 +191,14 @@ public:
         }
         if (localBoids.size() !=0 && Y_sep != 0){            
             Y_repulsion = (Y_sep - boid.getYvel()) * SEPERATION_FORCE;
-        }
-        if (localBoids.size() !=0 && Z_sep != 0){            
-            Z_repulsion = (Z_sep - boid.getZvel()) * SEPERATION_FORCE;
-        }       
+        }     
         
-        return std::make_tuple(X_repulsion, Y_repulsion, Z_repulsion);
+        return std::make_tuple(X_repulsion, Y_repulsion);
     }
     
 // PREDATOR
-    std::tuple<float,float,float> predator(Boid& boid){
-        float X_sep = 0,  Y_sep = 0,  Z_sep = 0, X_repulsion = 0, Y_repulsion = 0, Z_repulsion = 0;
+    std::tuple<float,float> predator(Boid& boid){
+        float X_sep = 0,  Y_sep = 0, X_repulsion = 0, Y_repulsion = 0;
         float distance;
 
 
@@ -234,12 +212,11 @@ public:
                 
                 if ( curr_id == localBoids[j].getid() && curr_id < PREDATORS) {
                     
-                    distance = sqrt( pow((boid.getX() - m_boids[i].getX()),2.0) + pow((boid.getY() - m_boids[i].getY()),2.0) + pow((boid.getZ() - m_boids[i].getZ()),2.0));
+                    distance = sqrt( pow((boid.getX() - m_boids[i].getX()),2.0) + pow((boid.getY() - m_boids[i].getY()),2.0));
 
                     
                     X_sep += ( boid.getX() - m_boids[i].getX() ) / pow(distance,1.0);
-                    Y_sep += ( boid.getY() - m_boids[i].getY() ) / pow(distance,1.0);
-                    Z_sep += ( boid.getZ() - m_boids[i].getZ() ) / pow(distance,1.0);                    
+                    Y_sep += ( boid.getY() - m_boids[i].getY() ) / pow(distance,1.0);                  
                 }
                 
             }
@@ -250,12 +227,9 @@ public:
         }
         if (localBoids.size() !=0 && Y_sep != 0){            
             Y_repulsion = (Y_sep - boid.getYvel()) * SEPERATION_FORCE;
-        }
-        if (localBoids.size() !=0 && Z_sep != 0){            
-            Z_repulsion = (Z_sep - boid.getZvel()) * SEPERATION_FORCE;
-        }       
+        }     
         
-        return std::make_tuple(X_repulsion, Y_repulsion, Z_repulsion);
+        return std::make_tuple(X_repulsion, Y_repulsion);
     }
     
 
@@ -265,21 +239,18 @@ public:
 
 
         float X = boid.getX();
-        float Y = boid.getY();
-        float Z = boid.getZ();        
+        float Y = boid.getY();     
         float Xvel = 0;
-        float Yvel = 0;
-        float Zvel = 0;       
+        float Yvel = 0;     
         float magnitude;  
         
-        std::tuple<float,float,float> alignVel = align(boid);
-        std::tuple<float,float,float> cohVel = cohesion(boid);
-        std::tuple<float,float,float> sepVel = seperation(boid); 
-        std::tuple<float,float,float> predVel = predator(boid);        
+        std::tuple<float,float> alignVel = align(boid);
+        std::tuple<float,float> cohVel = cohesion(boid);
+        std::tuple<float,float> sepVel = seperation(boid); 
+        std::tuple<float,float> predVel = predator(boid);        
         
         Xvel = boid.getXvel() + std::get<0>(alignVel) + std::get<0>(cohVel) + std::get<0>(sepVel) + std::get<0>(predVel);
         Yvel = boid.getYvel() + std::get<1>(alignVel) + std::get<1>(cohVel) + std::get<1>(sepVel) + std::get<1>(predVel);      
-        Zvel = boid.getZvel() + std::get<2>(alignVel) + std::get<2>(cohVel) + std::get<2>(sepVel) + std::get<2>(predVel);
         
  //      Steer Away from the edges (Option 1)       
         if (option == 0) {
@@ -296,27 +267,19 @@ public:
             if (boid.getY() > HEIGHT - (BUFFER_ZONE/100)*HEIGHT){
                 Yvel -= TURN_FORCE;
             } 
-            if (boid.getZ() < (BUFFER_ZONE/100)*DEPTH - DEPTH){
-                Zvel += TURN_FORCE;
-            }
-            if (boid.getZ() > DEPTH - (BUFFER_ZONE/100)*DEPTH){
-                Zvel -= TURN_FORCE;
-            }            
         }
         
-        magnitude = sqrt( pow(Xvel,2.0) + pow(Yvel,2.0) + pow(Zvel,2.0));
+        magnitude = sqrt( pow(Xvel,2.0) + pow(Yvel,2.0));
         
         if (magnitude != 0)
         {
         Xvel = Xvel * (MAX_SPEED / magnitude);
-        Yvel = Yvel * (MAX_SPEED / magnitude);
-        Zvel = Zvel * (MAX_SPEED / magnitude);       
+        Yvel = Yvel * (MAX_SPEED / magnitude);   
         }
         
         
         X += Xvel * TIME_STEP;
-        Y += Yvel * TIME_STEP;
-        Z += Zvel * TIME_STEP;        
+        Y += Yvel * TIME_STEP;      
 
 //      Reappear the other side of the box (Option 2)    
         if (option == 1) {
@@ -325,16 +288,13 @@ public:
             }
             if (Y > HEIGHT || Y < -HEIGHT){
                 Y = -Y;
-            }
-            if (Z > DEPTH || Z < -DEPTH){
-                Z = -Z;
-            }            
+            }         
         }
 
             
 
             
-        boid.update(X, Y, Z, Xvel, Yvel, Zvel);
+        boid.update(X, Y, Xvel, Yvel);
         
 
        
@@ -349,10 +309,9 @@ std::vector<Boid> Flock :: neighbour(Boid& boid, const float visibility) {
     for (int i =0; i < m_numBoids; i++) {
         
         float Xdist = m_boids[i].getX() - boid.getX();
-        float Ydist = m_boids[i].getY() - boid.getY();
-        float Zdist = m_boids[i].getZ() - boid.getZ();        
+        float Ydist = m_boids[i].getY() - boid.getY();      
         
-        float distance = sqrt( pow(Xdist, 2.0) + pow(Ydist, 2.0 ) + pow(Zdist, 2.0 ));
+        float distance = sqrt( pow(Xdist, 2.0) + pow(Ydist, 2.0 ));
         
         if (boid.getid() != m_boids[i].getid() && distance < visibility) {
             Neighbours.push_back( m_boids[i] );
@@ -381,10 +340,10 @@ int main(int argc, char *argv[]) {
     initial = omp_get_wtime();
 // Initialise data file
     std::string fileName;
-    fileName = "boid_data3D.csv";
+    fileName = "boid_data2D.csv";
     std::ofstream data(fileName); 
 // Initialise file with number of frames
-    std::ofstream infoFile("infoFile3D.csv");
+    std::ofstream infoFile("infoFile2D.csv");
     
 // Create birds flock
     Flock birds{};
@@ -400,17 +359,16 @@ int main(int argc, char *argv[]) {
     
 // Advance the birds   
     
-    infoFile << "HEIGHT, WIDTH, DEPTH, MAX_SPEED, TIME_LIMIT, TIME_STEP, NUM_BOIDS,ALIGN_VISIBILITY, COHESION_VISIBILITY, SEPERATION_VISIBILITY, ALIGN_FORCE,  COHESION_FORCE, SEPERATION_FORCE, NUM_BOIDS\n";
+    infoFile << "HEIGHT, WIDTH, MAX_SPEED, TIME_LIMIT, TIME_STEP, NUM_BOIDS,ALIGN_VISIBILITY, COHESION_VISIBILITY, SEPERATION_VISIBILITY, ALIGN_FORCE,  COHESION_FORCE, SEPERATION_FORCE, NUM_BOIDS\n";
     
-    infoFile << std::to_string(HEIGHT) + "," + std::to_string(WIDTH) + "," + std::to_string(DEPTH) + "," + std::to_string(MAX_SPEED) + "," + std::to_string(TIME_LIMIT) + "," + std::to_string(TIME_STEP) + "," +  std::to_string(NUM_BOIDS) + "," + std::to_string(ALIGN_VISIBILITY) + "," + std::to_string(COHESION_VISIBILITY) + "," + std::to_string(SEPERATION_VISIBILITY) + "," + std::to_string(ALIGN_FORCE) +"," + std::to_string(COHESION_FORCE) + "," + std::to_string(SEPERATION_FORCE) + "," + std::to_string(NUM_BOIDS);
+    infoFile << std::to_string(HEIGHT) + "," + std::to_string(WIDTH) + "," + std::to_string(MAX_SPEED) + "," + std::to_string(TIME_LIMIT) + "," + std::to_string(TIME_STEP) + "," +  std::to_string(NUM_BOIDS) + "," + std::to_string(ALIGN_VISIBILITY) + "," + std::to_string(COHESION_VISIBILITY) + "," + std::to_string(SEPERATION_VISIBILITY) + "," + std::to_string(ALIGN_FORCE) +"," + std::to_string(COHESION_FORCE) + "," + std::to_string(SEPERATION_FORCE) + "," + std::to_string(NUM_BOIDS);
     
     
     if (omp_get_thread_num() == 0) {
         for (int num = 0; num < NUM_BOIDS; num ++) 
         {
             data << "boid" + std::to_string(num) + ".x, boid" 
-                           + std::to_string(num) + ".y, boid" 
-                           + std::to_string(num) + ".z, ";
+                           + std::to_string(num) + ".y, ";
         }
         data << '\n';
     }
@@ -422,8 +380,8 @@ int main(int argc, char *argv[]) {
         if (omp_get_thread_num() == 0) {
             for (int num = 0; num < NUM_BOIDS; num ++) {
                 data << birds.m_boids[num].getX() << "," 
-                     << birds.m_boids[num].getY() <<"," 
-                     << birds.m_boids[num].getZ() <<",";
+                     << birds.m_boids[num].getY() <<",";
+   
                 
             }
             data << '\n';
