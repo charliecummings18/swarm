@@ -19,7 +19,7 @@ def main():
         int DEPTH = int(float(infoFile.iloc[1][2]))
         int TIME_LIMIT = int(float(infoFile.iloc[1][4]))
         float TIME_STEP= float(infoFile.iloc[1][5])
-        int NUM_BOIDS = int(float(infoFile.iloc[1][7]))
+        int NUM_BOIDS = int(float(infoFile.iloc[1][6]))
         int FRAMES = int(float(TIME_LIMIT/TIME_STEP)) 
         int INTERVAL = int(TIME_STEP*1000)
         

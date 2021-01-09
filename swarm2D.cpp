@@ -25,13 +25,6 @@ private:
     
     int m_id{};
 public:    
-    Boid() : m_X{WIDTH/2},
-             m_Y{HEIGHT/2},
-             m_Xvel{}, 
-             m_Yvel{}
-             
-    {
-    }
     
     Boid(float x, float y, float xVel, float yVel, int id)
         :m_X{x}, m_Y{y}, m_Xvel{xVel}, m_Yvel{yVel}, m_id{id}
@@ -101,7 +94,7 @@ public:
            int curr_id = m_boids[i].getid();
             for (int j = 0; j < localBoids.size(); j++ ) {
                 
-                if ( curr_id == localBoids[j].getid() ) {
+                if ( curr_id == localBoids[j].getid() && curr_id > PREDATORS) {
                     
                     tot_Xvel += m_boids[i].getXvel();
                     tot_Yvel += m_boids[i].getYvel();               
@@ -138,7 +131,7 @@ public:
            int curr_id = m_boids[i].getid();
             for (int j = 0; j < localBoids.size(); j++ ) {
                 
-                if ( curr_id == localBoids[j].getid() && curr_id >= PREDATORS) {
+                if ( curr_id == localBoids[j].getid() && curr_id > PREDATORS) {
                     
                     tot_X += m_boids[i].getX();
                     tot_Y += m_boids[i].getY();                   
@@ -175,7 +168,7 @@ public:
            int curr_id = m_boids[i].getid();
             for (int j = 0; j < localBoids.size(); j++ ) {
                 
-                if ( curr_id == localBoids[j].getid() && curr_id >= PREDATORS) {
+                if ( curr_id == localBoids[j].getid() && curr_id > PREDATORS) {
                     distance = sqrt( pow((boid.getX() - m_boids[i].getX()),2.0) + pow((boid.getY() - m_boids[i].getY()),2.0));
 
                     
@@ -198,38 +191,39 @@ public:
     
 // PREDATOR
     std::tuple<float,float> predator(Boid& boid){
-        float X_sep = 0,  Y_sep = 0, X_repulsion = 0, Y_repulsion = 0;
+        float X_pred = 0,  Y_pred = 0, X_repulse = 0, Y_repulse = 0;
         float distance;
 
 
         std::vector<Boid> localBoids = neighbour(boid, PREDATOR_VISIBILITY);
         
-
-        for (int i = 0; i < m_numBoids; i++) {
+        if (boid.getid() > PREDATORS) {
+            for (int i = 0; i < m_numBoids; i++) {
             
-           int curr_id = m_boids[i].getid();
-            for (int j = 0; j < localBoids.size(); j++ ) {
+                int curr_id = m_boids[i].getid();
+                for (int j = 0; j < localBoids.size(); j++ ) {
                 
-                if ( curr_id == localBoids[j].getid() && curr_id < PREDATORS) {
+                    if ( curr_id == localBoids[j].getid() && curr_id < PREDATORS) {
                     
-                    distance = sqrt( pow((boid.getX() - m_boids[i].getX()),2.0) + pow((boid.getY() - m_boids[i].getY()),2.0));
+                        distance = sqrt( pow((boid.getX() - m_boids[i].getX()),2.0) + pow((boid.getY() - m_boids[i].getY()),2.0));
 
                     
-                    X_sep += ( boid.getX() - m_boids[i].getX() ) / pow(distance,1.0);
-                    Y_sep += ( boid.getY() - m_boids[i].getY() ) / pow(distance,1.0);                  
-                }
+                        X_pred += ( boid.getX() - m_boids[i].getX() );
+                        Y_pred += ( boid.getY() - m_boids[i].getY() );                  
+                    }
                 
+                }
             }
         }
 
-        if (localBoids.size() !=0 && X_sep != 0){ 
-            X_repulsion = (X_sep - boid.getXvel()) * SEPERATION_FORCE;
+        if (localBoids.size() !=0 && X_pred != 0){ 
+            X_repulse = (X_pred - boid.getXvel()) * PREDATOR_FORCE;
         }
-        if (localBoids.size() !=0 && Y_sep != 0){            
-            Y_repulsion = (Y_sep - boid.getYvel()) * SEPERATION_FORCE;
+        if (localBoids.size() !=0 && Y_pred != 0){            
+            Y_repulse = (Y_pred - boid.getYvel()) * PREDATOR_FORCE;
         }     
         
-        return std::make_tuple(X_repulsion, Y_repulsion);
+        return std::make_tuple(X_repulse, Y_repulse);
     }
     
 
@@ -242,7 +236,7 @@ public:
         float Y = boid.getY();     
         float Xvel = 0;
         float Yvel = 0;     
-        float magnitude;  
+        float magnitude = 0;  
         
         std::tuple<float,float> alignVel = align(boid);
         std::tuple<float,float> cohVel = cohesion(boid);
@@ -255,16 +249,16 @@ public:
  //      Steer Away from the edges (Option 1)       
         if (option == 0) {
             
-            if (boid.getX() < (BUFFER_ZONE/100)*WIDTH - WIDTH){
-                Xvel += (TURN_FORCE/100)*WIDTH;
+            if (boid.getX() < BUFFER_ZONE - WIDTH){
+                Xvel += TURN_FORCE;
             }
-            if (boid.getX() > WIDTH - (BUFFER_ZONE/100)*WIDTH){
+            if (boid.getX() > WIDTH - BUFFER_ZONE){
                 Xvel -= TURN_FORCE;
             }   
-            if (boid.getY() < (BUFFER_ZONE/100)*HEIGHT - HEIGHT){
+            if (boid.getY() < BUFFER_ZONE - HEIGHT){
                 Yvel += TURN_FORCE;
             }
-            if (boid.getY() > HEIGHT - (BUFFER_ZONE/100)*HEIGHT){
+            if (boid.getY() > HEIGHT - BUFFER_ZONE){
                 Yvel -= TURN_FORCE;
             } 
         }
@@ -359,9 +353,9 @@ int main(int argc, char *argv[]) {
     
 // Advance the birds   
     
-    infoFile << "HEIGHT, WIDTH, MAX_SPEED, TIME_LIMIT, TIME_STEP, NUM_BOIDS,ALIGN_VISIBILITY, COHESION_VISIBILITY, SEPERATION_VISIBILITY, ALIGN_FORCE,  COHESION_FORCE, SEPERATION_FORCE, NUM_BOIDS\n";
+    infoFile << "HEIGHT, WIDTH, MAX_SPEED, TIME_LIMIT, TIME_STEP, NUM_BOIDS, ALIGN_VISIBILITY, COHESION_VISIBILITY, SEPERATION_VISIBILITY, ALIGN_FORCE,  COHESION_FORCE, SEPERATION_FORCE\n";
     
-    infoFile << std::to_string(HEIGHT) + "," + std::to_string(WIDTH) + "," + std::to_string(MAX_SPEED) + "," + std::to_string(TIME_LIMIT) + "," + std::to_string(TIME_STEP) + "," +  std::to_string(NUM_BOIDS) + "," + std::to_string(ALIGN_VISIBILITY) + "," + std::to_string(COHESION_VISIBILITY) + "," + std::to_string(SEPERATION_VISIBILITY) + "," + std::to_string(ALIGN_FORCE) +"," + std::to_string(COHESION_FORCE) + "," + std::to_string(SEPERATION_FORCE) + "," + std::to_string(NUM_BOIDS);
+    infoFile << std::to_string(HEIGHT) + "," + std::to_string(WIDTH) + "," + std::to_string(MAX_SPEED) + "," + std::to_string(TIME_LIMIT) + "," + std::to_string(TIME_STEP) + "," +  std::to_string(NUM_BOIDS) + "," + std::to_string(ALIGN_VISIBILITY) + "," + std::to_string(COHESION_VISIBILITY) + "," + std::to_string(SEPERATION_VISIBILITY) + "," + std::to_string(ALIGN_FORCE) +"," + std::to_string(COHESION_FORCE) + "," + std::to_string(SEPERATION_FORCE);
     
     
     if (omp_get_thread_num() == 0) {

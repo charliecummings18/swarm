@@ -20,7 +20,7 @@ def main():
         int WIDTH = int(float(infoFile.iloc[1][1]))
         int TIME_LIMIT = int(float(infoFile.iloc[1][3]))
         float TIME_STEP= float(infoFile.iloc[1][4])
-        int NUM_BOIDS = int(float(infoFile.iloc[1][12]))
+        int NUM_BOIDS = int(float(infoFile.iloc[1][5]))
         int FRAMES = int(float(TIME_LIMIT/TIME_STEP)) 
         int INTERVAL = int(TIME_STEP*1000)
         
@@ -51,10 +51,8 @@ def main():
     anim = FuncAnimation(fig, animate, init_func=init,  frames = FRAMES, interval=INTERVAL)
 
 
-    
-    #anim.save('boid2D.mp4', writer='ffmpeg')
     plt.show()
-    
+    #anim.save('boid2D.mp4', writer='ffmpeg')  
     
     return 0
     
