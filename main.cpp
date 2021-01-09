@@ -27,6 +27,16 @@ private:
     
     int m_id{};
 public:    
+    Boid() : m_X{WIDTH/2},
+             m_Y{HEIGHT/2},
+             m_Z{DEPTH/2},
+             m_Xvel{}, 
+             m_Yvel{},
+             m_Zvel{}
+             
+    {
+    }
+    
     Boid(float x, float y, float z, float xVel, float yVel, float zVel, int id)
         :m_X{x}, m_Y{y}, m_Z{z}, m_Xvel{xVel}, m_Yvel{yVel}, m_Zvel{zVel}, m_id{id}
     {
@@ -142,7 +152,7 @@ public:
            int curr_id = m_boids[i].getid();
             for (int j = 0; j < localBoids.size(); j++ ) {
                 
-                if ( curr_id == localBoids[j].getid() /*&& curr_id > PREDATORS*/) {
+                if ( curr_id == localBoids[j].getid() ) {
                     
                     tot_X += m_boids[i].getX();
                     tot_Y += m_boids[i].getY(); 
@@ -181,50 +191,9 @@ public:
         for (int i = 0; i < m_numBoids; i++) {
             
            int curr_id = m_boids[i].getid();
-           
-
             for (int j = 0; j < localBoids.size(); j++ ) {
                 
-                if ( curr_id == localBoids[j].getid() /*&& curr_id > PREDATORS*/) {
-                    distance = sqrt( pow((boid.getX() - m_boids[i].getX()),2.0) + pow((boid.getY() - m_boids[i].getY()),2.0) + pow((boid.getZ() - m_boids[i].getZ()),2.0));
-
-                    
-                    X_sep += ( boid.getX() - m_boids[i].getX() ) / pow(distance,1.0);
-                    Y_sep += ( boid.getY() - m_boids[i].getY() ) / pow(distance,1.0);
-                    Z_sep += ( boid.getZ() - m_boids[i].getZ() ) / pow(distance,1.0);                    
-                }
-            }
-        }
-
-        if (localBoids.size() !=0 && X_sep != 0){ 
-            X_repulsion = (X_sep - boid.getXvel()) * SEPERATION_FORCE;
-        }
-        if (localBoids.size() !=0 && Y_sep != 0){            
-            Y_repulsion = (Y_sep - boid.getYvel()) * SEPERATION_FORCE;
-        }
-        if (localBoids.size() !=0 && Z_sep != 0){            
-            Z_repulsion = (Z_sep - boid.getZvel()) * SEPERATION_FORCE;
-        }       
-        
-        return std::make_tuple(X_repulsion, Y_repulsion, Z_repulsion);
-    }
-    
-// PREDATOR
-    std::tuple<float,float,float> predator(Boid& boid){
-        float X_sep = 0,  Y_sep = 0,  Z_sep = 0, X_repulsion = 0, Y_repulsion = 0, Z_repulsion = 0;
-        float distance;
-
-
-        std::vector<Boid> localBoids = neighbour(boid, PREDATOR_VISIBILITY);
-        
-
-        for (int i = 0; i < m_numBoids; i++) {
-            
-           int curr_id = m_boids[i].getid();
-            for (int j = 0; j < localBoids.size(); j++ ) {
-                
-                if ( curr_id == localBoids[j].getid() && curr_id < PREDATORS) {
-                    
+                if ( curr_id == localBoids[j].getid() ) {
                     distance = sqrt( pow((boid.getX() - m_boids[i].getX()),2.0) + pow((boid.getY() - m_boids[i].getY()),2.0) + pow((boid.getZ() - m_boids[i].getZ()),2.0));
 
                     
@@ -247,7 +216,7 @@ public:
         }       
         
         return std::make_tuple(X_repulsion, Y_repulsion, Z_repulsion);
-    }
+    }     
     
 
 
@@ -261,17 +230,15 @@ public:
         float Xvel = 0;
         float Yvel = 0;
         float Zvel = 0;       
-        float magnitude = 0;  
+        float magnitude;  
         
         std::tuple<float,float,float> alignVel = align(boid);
         std::tuple<float,float,float> cohVel = cohesion(boid);
-        std::tuple<float,float,float> sepVel = seperation(boid); 
-        std::tuple<float,float,float> predVel = predator(boid);         
+        std::tuple<float,float,float> sepVel = seperation(boid);  
         
-        
-        Xvel = boid.getXvel() + std::get<0>(alignVel) + std::get<0>(cohVel) + std::get<0>(sepVel)/* + std::get<0>(predVel)*/;
-        Yvel = boid.getYvel() + std::get<1>(alignVel) + std::get<1>(cohVel) + std::get<1>(sepVel)/* + std::get<1>(predVel)*/;      
-        Zvel = boid.getZvel() + std::get<2>(alignVel) + std::get<2>(cohVel) + std::get<2>(sepVel)/* + std::get<2>(predVel)*/;
+        Xvel = boid.getXvel() + std::get<0>(alignVel) + std::get<0>(cohVel) + std::get<0>(sepVel);
+        Yvel = boid.getYvel() + std::get<1>(alignVel) + std::get<1>(cohVel) + std::get<1>(sepVel);      
+        Zvel = boid.getZvel() + std::get<2>(alignVel) + std::get<2>(cohVel) + std::get<2>(sepVel);
         
  //      Steer Away from the edges (Option 1)       
         if (option == 0) {
@@ -295,7 +262,8 @@ public:
                 Zvel -= TURN_FORCE;
             }            
         }
-        magnitude = sqrt( pow(Xvel,2.0) + pow(Yvel,2.0) + pow(Zvel,2.0));       
+        
+        magnitude = sqrt( pow(Xvel,2.0) + pow(Yvel,2.0) + pow(Zvel,2.0));
         
         if (magnitude != 0)
         {
@@ -321,15 +289,9 @@ public:
                 Z = -Z;
             }            
         }
-/*        
-        magnitude = sqrt( pow(Xvel,2.0) + pow(Yvel,2.0) + pow(Zvel,2.0));
-        
-        if (boid.getid() == 0){
-		printf("magnitude after speed control: %f\n", magnitude);
-        printf("Xvel: %f, Yvel:%f, Zvel: %f\n", Xvel, Yvel, Zvel);
-		}
+
             
-*/
+
             
         boid.update(X, Y, Z, Xvel, Yvel, Zvel);
         
@@ -378,10 +340,10 @@ int main(int argc, char *argv[]) {
     initial = omp_get_wtime();
 // Initialise data file
     std::string fileName;
-    fileName = "boid_data3D.csv";
+    fileName = "boid_data.csv";
     std::ofstream data(fileName); 
 // Initialise file with number of frames
-    std::ofstream infoFile("infoFile3D.csv");
+    std::ofstream infoFile("infoFile.csv");
     
 // Create birds flock
     Flock birds{};
@@ -397,9 +359,9 @@ int main(int argc, char *argv[]) {
     
 // Advance the birds   
     
-    infoFile << "HEIGHT, WIDTH, DEPTH, MAX_SPEED, TIME_LIMIT, TIME_STEP, NUM_BOIDS, ALIGN_VISIBILITY, COHESION_VISIBILITY, SEPERATION_VISIBILITY, ALIGN_FORCE,  COHESION_FORCE, SEPERATION_FORCE\n";
+    infoFile << "HEIGHT, WIDTH, DEPTH, MAX_SPEED, TIME_LIMIT, TIME_STEP, NUM_BOIDS,ALIGN_VISIBILITY, COHESION_VISIBILITY, SEPERATION_VISIBILITY, ALIGN_FORCE,  COHESION_FORCE, SEPERATION_FORCE, NUM_BOIDS\n";
     
-    infoFile << std::to_string(HEIGHT) + "," + std::to_string(WIDTH) + "," + std::to_string(DEPTH) + "," + std::to_string(MAX_SPEED) + "," + std::to_string(TIME_LIMIT) + "," + std::to_string(TIME_STEP) + "," +  std::to_string(NUM_BOIDS) + "," + std::to_string(ALIGN_VISIBILITY) + "," + std::to_string(COHESION_VISIBILITY) + "," + std::to_string(SEPERATION_VISIBILITY) + "," + std::to_string(ALIGN_FORCE) +"," + std::to_string(COHESION_FORCE) + "," + std::to_string(SEPERATION_FORCE);
+    infoFile << std::to_string(HEIGHT) + "," + std::to_string(WIDTH) + "," + std::to_string(DEPTH) + "," + std::to_string(MAX_SPEED) + "," + std::to_string(TIME_LIMIT) + "," + std::to_string(TIME_STEP) + "," +  std::to_string(NUM_BOIDS) + "," + std::to_string(ALIGN_VISIBILITY) + "," + std::to_string(COHESION_VISIBILITY) + "," + std::to_string(SEPERATION_VISIBILITY) + "," + std::to_string(ALIGN_FORCE) +"," + std::to_string(COHESION_FORCE) + "," + std::to_string(SEPERATION_FORCE) + "," + std::to_string(NUM_BOIDS);
     
     
     if (omp_get_thread_num() == 0) {
@@ -418,7 +380,7 @@ int main(int argc, char *argv[]) {
     while (time < TIME_LIMIT) {
         if (omp_get_thread_num() == 0) {
             for (int num = 0; num < NUM_BOIDS; num ++) {
-                data << birds.m_boids[num].getX() <<"," 
+                data << birds.m_boids[num].getX() << "," 
                      << birds.m_boids[num].getY() <<"," 
                      << birds.m_boids[num].getZ() <<",";
                 
@@ -428,17 +390,22 @@ int main(int argc, char *argv[]) {
         
     #pragma omp parallel private(k)
     {
-        #pragma omp for 
+        #pragma omp for
         for (k = 0; k < numBirds; k++) {
             birds.advance(birds.m_boids[k], data, OPTION);
         }
-    }    
-    
+    }
     time += TIME_STEP;
     }
     
     data.close();
     
+    
+    
+    
+//    t3 = omp_get_wtime();
+//    printf("Birds advance: %8.6f s\n",t3-initial);        
+   
     
     final = omp_get_wtime();
     printf("Total Elapsed %8.6f s\n",final-initial); 

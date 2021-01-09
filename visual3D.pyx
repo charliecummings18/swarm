@@ -19,13 +19,10 @@ def main():
         int DEPTH = int(float(infoFile.iloc[1][2]))
         int TIME_LIMIT = int(float(infoFile.iloc[1][4]))
         float TIME_STEP= float(infoFile.iloc[1][5])
-        int NUM_BOIDS = int(float(infoFile.iloc[1][13]))
+        int NUM_BOIDS = int(float(infoFile.iloc[1][7]))
         int FRAMES = int(float(TIME_LIMIT/TIME_STEP)) 
         int INTERVAL = int(TIME_STEP*1000)
         
-    
-    infoFile = pd.read_csv("infoFile.csv", header=None)
-    data = pd.read_csv("boid_data.csv")
     fig = plt.figure()
     ax = p3.Axes3D(fig)
     x_positions = data.iloc[0,::3].to_list()
@@ -44,13 +41,13 @@ def main():
     ax.set_xlim3d(-400, 400)
     ax.set_xlabel('X')
 
-    ax.set_ylim3d(-400, 400)
+    ax.set_ylim3d(-250, 250)
     ax.set_ylabel('Y')
 
-    ax.set_zlim3d(-400, 400)
+    ax.set_zlim3d(-250, 250)
     ax.set_zlabel('Z')
     
-    points, = ax.plot(x, y, z, 'o', ms=1)
+    points, = ax.plot(x, y, z, 'o', ms=2)
     txt = fig.suptitle('')  
 
 
@@ -76,10 +73,10 @@ def main():
         return points,txt
       
     
-    ani=animation.FuncAnimation(fig, update_points, frames=FRAMES, interval=INTERVAL, blit = False, cache_frame_data = False, fargs=(x, y, z, points))
-    
-#    ani.save('3Dboid.mp4', writer='ffmpeg')
-    plt.show()
+    ani=animation.FuncAnimation(fig, update_points, frames=FRAMES, interval=INTERVAL, repeat = False, cache_frame_data = False, fargs=(x, y, z, points))
+    plt.show()    
+    ani.save('boid3D_1.mp4', writer='ffmpeg')
+
     
     
     
