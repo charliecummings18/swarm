@@ -28,8 +28,20 @@ def main():
     fig = plt.figure()
     ax = plt.axes(xlim=(-WIDTH,WIDTH ), ylim=(-HEIGHT, HEIGHT) )
 
+    colours = []
 
-    particles = ax.scatter([], [], s=1)
+    for i in range(0,NUM_BOIDS):
+        if (i < 8):
+            colours.append('red')
+        else:
+            colours.append('black')
+
+    
+
+            
+
+
+    particles = ax.scatter([], [], color=[], s =1)
 
 
     def init():
@@ -43,9 +55,8 @@ def main():
         
         x_positions.pop(NUM_BOIDS)
         
-
         particles.set_offsets(np.c_[x_positions,y_positions]) 
-  
+        particles.set_color(colours)
         return particles,
     anim = FuncAnimation(fig, animate, init_func=init,  frames = FRAMES, interval=INTERVAL)
 
