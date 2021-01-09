@@ -29,11 +29,11 @@ def main():
     ax = plt.axes(xlim=(-WIDTH,WIDTH ), ylim=(-HEIGHT, HEIGHT) )
 
 
-    particles, = ax.plot([], [], 'o', ms=1)
+    particles = ax.scatter([], [], s=1)
 
 
     def init():
-        particles.set_data([], [])
+        particles.set_offsets([])
         return particles,
 
     def animate(t):
@@ -42,12 +42,11 @@ def main():
         y_positions = data.iloc[t,1::2].to_list() 
         
         x_positions.pop(NUM_BOIDS)
+        
 
-
-        particles.set_data(x_positions, y_positions) 
-
+        particles.set_offsets(np.c_[x_positions,y_positions]) 
+  
         return particles,
-
     anim = FuncAnimation(fig, animate, init_func=init,  frames = FRAMES, interval=INTERVAL)
 
 
