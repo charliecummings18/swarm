@@ -266,7 +266,7 @@ public:
         std::tuple<float,float,float> alignVel = align(boid);
         std::tuple<float,float,float> cohVel = cohesion(boid);
         std::tuple<float,float,float> sepVel = seperation(boid); 
-        std::tuple<float,float,float> predVel = predator(boid);         
+        /*std::tuple<float,float,float> predVel = predator(boid);*/         
         
         
         Xvel = boid.getXvel() + std::get<0>(alignVel) + std::get<0>(cohVel) + std::get<0>(sepVel)/* + std::get<0>(predVel)*/;
@@ -295,6 +295,7 @@ public:
                 Zvel -= TURN_FORCE;
             }            
         }
+        
         magnitude = sqrt( pow(Xvel,2.0) + pow(Yvel,2.0) + pow(Zvel,2.0));       
         
         if (magnitude != 0)
@@ -321,15 +322,6 @@ public:
                 Z = -Z;
             }            
         }
-/*        
-        magnitude = sqrt( pow(Xvel,2.0) + pow(Yvel,2.0) + pow(Zvel,2.0));
-        
-        if (boid.getid() == 0){
-		printf("magnitude after speed control: %f\n", magnitude);
-        printf("Xvel: %f, Yvel:%f, Zvel: %f\n", Xvel, Yvel, Zvel);
-		}
-            
-*/
             
         boid.update(X, Y, Z, Xvel, Yvel, Zvel);
         

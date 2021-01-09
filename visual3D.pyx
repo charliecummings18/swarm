@@ -38,16 +38,16 @@ def main():
     y=np.zeros(NUM_BOIDS)
     z=np.zeros(NUM_BOIDS)
 
-    ax.set_xlim3d(-400, 400)
+    ax.set_xlim3d(-WIDTH, WIDTH)
     ax.set_xlabel('X')
 
-    ax.set_ylim3d(-250, 250)
+    ax.set_ylim3d(-HEIGHT, HEIGHT)
     ax.set_ylabel('Y')
 
-    ax.set_zlim3d(-250, 250)
+    ax.set_zlim3d(-DEPTH, DEPTH)
     ax.set_zlabel('Z')
     
-    points, = ax.plot(x, y, z, 'o', ms=2)
+    points, = ax.plot(x, y, z, 'o', ms=1)
     txt = fig.suptitle('')  
 
 
@@ -75,7 +75,7 @@ def main():
     
     ani=animation.FuncAnimation(fig, update_points, frames=FRAMES, interval=INTERVAL, repeat = False, cache_frame_data = False, fargs=(x, y, z, points))
     plt.show()    
-    ani.save('boid3D_1.mp4', writer='ffmpeg')
+    ani.save('boid3D.mp4', writer='ffmpeg')
 
     
     
