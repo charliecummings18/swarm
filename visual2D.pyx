@@ -6,8 +6,7 @@ import time
 import numpy as np
 from libcpp.vector cimport vector
 from cython.parallel cimport prange
-from libcpp.list cimport list
-cimport openmp
+
 
 def main():
     start_time = time.time()
@@ -36,13 +35,11 @@ def main():
         else:
             colours.append('black')
 
-    
 
             
 
 
     particles = ax.scatter([], [], color=[], s =1)
-
 
     def init():
         particles.set_offsets([])
@@ -62,7 +59,7 @@ def main():
 
 
     plt.show()
-    #anim.save('boid2D.mp4', writer='ffmpeg')  
+    anim.save('boid2D.mp4', writer='ffmpeg')  
     
     return 0
     

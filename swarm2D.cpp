@@ -125,21 +125,25 @@ public:
 
         std::vector<Boid> localBoids = neighbour(boid, COHESION_VISIBILITY);
         
-
-        for (int i = 0; i < m_numBoids; i++) {
+        if (boid.getid() >= PREDATORS)
+        {
+            for (int i = 0; i < m_numBoids; i++) {
             
-           int curr_id = m_boids[i].getid();
-            for (int j = 0; j < localBoids.size(); j++ ) {
+                int curr_id = m_boids[i].getid();
+                for (int j = 0; j < localBoids.size(); j++ ) {
                 
-                if ( curr_id == localBoids[j].getid() && curr_id > PREDATORS) {
+                    if ( curr_id == localBoids[j].getid() && curr_id > PREDATORS) {
                     
-                    tot_X += m_boids[i].getX();
-                    tot_Y += m_boids[i].getY();                   
-                }
+                        tot_X += m_boids[i].getX();
+                        tot_Y += m_boids[i].getY();                   
+                    }
                 
+                
+                }
             }
                     
         }
+        
         if (localBoids.size() !=0)
         {
             desiredX = (tot_X / localBoids.size());
@@ -162,20 +166,21 @@ public:
 
         std::vector<Boid> localBoids = neighbour(boid, SEPERATION_VISIBILITY);
         
-
-        for (int i = 0; i < m_numBoids; i++) {
+        if (boid.getid() >= PREDATORS){
+            for (int i = 0; i < m_numBoids; i++) {
             
-           int curr_id = m_boids[i].getid();
-            for (int j = 0; j < localBoids.size(); j++ ) {
+                int curr_id = m_boids[i].getid();
+                for (int j = 0; j < localBoids.size(); j++ ) {
                 
-                if ( curr_id == localBoids[j].getid() && curr_id > PREDATORS) {
-                    distance = sqrt( pow((boid.getX() - m_boids[i].getX()),2.0) + pow((boid.getY() - m_boids[i].getY()),2.0));
+                    if ( curr_id == localBoids[j].getid() && curr_id > PREDATORS) {
+                        distance = sqrt( pow((boid.getX() - m_boids[i].getX()),2.0) + pow((boid.getY() - m_boids[i].getY()),2.0));
 
                     
-                    X_sep += ( boid.getX() - m_boids[i].getX() ) / pow(distance,1.0);
-                    Y_sep += ( boid.getY() - m_boids[i].getY() ) / pow(distance,1.0);                    
-                }
+                        X_sep += ( boid.getX() - m_boids[i].getX() ) / pow(distance,1.0);
+                        Y_sep += ( boid.getY() - m_boids[i].getY() ) / pow(distance,1.0);                    
+                    }
                 
+                }
             }
         }
 
@@ -197,7 +202,7 @@ public:
 
         std::vector<Boid> localBoids = neighbour(boid, PREDATOR_VISIBILITY);
         
-        if (boid.getid() > PREDATORS) {
+        if (boid.getid() >= PREDATORS) {
             for (int i = 0; i < m_numBoids; i++) {
             
                 int curr_id = m_boids[i].getid();
