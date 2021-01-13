@@ -29,4 +29,5 @@ const float TURN_FORCE = 5;
 const int PREDATORS = 8;
 const int OPTION = 0;
 
+const int MASTER = 0;
 #endif
