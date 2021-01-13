@@ -13,6 +13,10 @@
 
 
 
+// Boid class. This holds the boids X,Y positons and velocities.
+// The Boid function is used to set the initial positions aand velocities for the boid.
+// The update function is used to update its position and velocity after each timestep.
+// The get* functions are used to retrieve specific values about the boid at that moment in time.
 
 class Boid {
         
@@ -48,6 +52,8 @@ public:
 };
 
 // The Flock (a list of Boid objects)
+// This class holds all the boids and using the generate function, generates a set number
+// of boids with random initial positions and velocities.
 
 class Flock {   
 private:
@@ -80,7 +86,10 @@ public:
     
     
     
-// ALIGN    
+// ALIGN RULE
+// This aligns a boids velocity with the average velocity of its neighbours
+// Neighbours are in the range ALIGN_VISIBILITY and the rule has strength ALIGN_FORCE
+
     std::tuple<float,float> align(Boid& boid){
         float tot_Xvel = 0,  tot_Yvel = 0, steering_Xvel = 0, 
               steering_Yvel = 0, desiredXvel = 0, desiredYvel = 0;
@@ -88,21 +97,24 @@ public:
 
         std::vector<Boid> localBoids = neighbour(boid, ALIGN_VISIBILITY);
         
-
-        for (int i = 0; i < m_numBoids; i++) {
+        if (boid.getid() >= PREDATORS)
+        {
+            for (int i = 0; i < m_numBoids; i++) {
             
-           int curr_id = m_boids[i].getid();
-            for (int j = 0; j < localBoids.size(); j++ ) {
+                int curr_id = m_boids[i].getid();
+                for (int j = 0; j < localBoids.size(); j++ ) {
                 
-                if ( curr_id == localBoids[j].getid() && curr_id > PREDATORS) {
+                    if ( curr_id == localBoids[j].getid() && curr_id > PREDATORS) {
                     
-                    tot_Xvel += m_boids[i].getXvel();
-                    tot_Yvel += m_boids[i].getYvel();               
+                        tot_Xvel += m_boids[i].getXvel();
+                        tot_Yvel += m_boids[i].getYvel();               
+                    }
+                
                 }
-                
-            }
                     
+            }
         }
+        
         if (localBoids.size() !=0)
         {
             desiredXvel = (tot_Xvel / localBoids.size());
@@ -117,31 +129,29 @@ public:
         return std::make_tuple(steering_Xvel,steering_Yvel);
     } 
     
-// COHESION    
+// COHESION 
+// This changes a boids velocity towards the average position of its neighbours
+// Neighbours are in the range COHESION_VISIBILITY and the rule has strength COHESION_FORCE
+
     std::tuple<float,float> cohesion(Boid& boid){
         float tot_X = 0,  tot_Y = 0, steering_X = 0, 
               steering_Y = 0, desiredX = 0, desiredY = 0;
 
 
         std::vector<Boid> localBoids = neighbour(boid, COHESION_VISIBILITY);
-        
-        if (boid.getid() >= PREDATORS)
-        {
-            for (int i = 0; i < m_numBoids; i++) {
+        for (int i = 0; i < m_numBoids; i++) {
             
-                int curr_id = m_boids[i].getid();
-                for (int j = 0; j < localBoids.size(); j++ ) {
+            int curr_id = m_boids[i].getid();
+            for (int j = 0; j < localBoids.size(); j++ ) {
                 
-                    if ( curr_id == localBoids[j].getid() && curr_id > PREDATORS) {
+                if ( curr_id == localBoids[j].getid() && curr_id > PREDATORS) {
                     
-                        tot_X += m_boids[i].getX();
-                        tot_Y += m_boids[i].getY();                   
-                    }
-                
-                
+                    tot_X += m_boids[i].getX();
+                    tot_Y += m_boids[i].getY();                   
                 }
+                
+                
             }
-                    
         }
         
         if (localBoids.size() !=0)
@@ -159,6 +169,10 @@ public:
     }     
 
 // SEPERATION   
+// This ensures boids do not become too close to eachother and will begin to seperate 
+// from boids when they are in the radius SEPERATION_VISIBILITY
+// This rule has strength SEPERATION_FORCE
+
     std::tuple<float,float> seperation(Boid& boid){
         float X_sep = 0,  Y_sep = 0, X_repulsion = 0, Y_repulsion = 0;
         float distance;
@@ -176,8 +190,8 @@ public:
                         distance = sqrt( pow((boid.getX() - m_boids[i].getX()),2.0) + pow((boid.getY() - m_boids[i].getY()),2.0));
 
                     
-                        X_sep += ( boid.getX() - m_boids[i].getX() ) / pow(distance,1.0);
-                        Y_sep += ( boid.getY() - m_boids[i].getY() ) / pow(distance,1.0);                    
+                        X_sep += ( boid.getX() - m_boids[i].getX() ) / distance;
+                        Y_sep += ( boid.getY() - m_boids[i].getY() ) / distance;                    
                     }
                 
                 }
@@ -195,6 +209,12 @@ public:
     }
     
 // PREDATOR
+// Predators are boids which hunt down the normal boids. They only follow the cohesion rule, to align their position 
+// with neighbouring boids (except other predators)
+// Normal boids will change their velocity to move away from the predators which is given by the predator rule below.
+// The predator rule is very similar to the seperation rule but the force does not scale with distance and comes into 
+// action when predators are in the range PREDATOR VISIBILITY and has the force PREDATOR FORCE.
+
     std::tuple<float,float> predator(Boid& boid){
         float X_pred = 0,  Y_pred = 0, X_repulse = 0, Y_repulse = 0;
         float distance;
@@ -232,7 +252,16 @@ public:
     }
     
 
-
+// ADVANCE
+// This function advances the boids one timestep every time it is called.
+// It takes one boid at a time and changes its X/Y velocity according to the 4 rules (align,cohesion,seperation,predator).
+// Velocities are used to change the boids position and then all 4 variables are updated in boid.update().
+// There are two options for how boids behave when they reach the edges of the screen.
+// Option 0: Boids steer away from the edges. They will feel a force within a zone near the edge which will push them away 
+//           from the edges of the screen.
+// Option 1: Boids reappear on the other side of the screen. This changes their positions so that the boids wrap around the screen.
+    
+    
     void advance(Boid& boid, std::ofstream& file, int option) {
         
 
@@ -251,7 +280,7 @@ public:
         Xvel = boid.getXvel() + std::get<0>(alignVel) + std::get<0>(cohVel) + std::get<0>(sepVel) + std::get<0>(predVel);
         Yvel = boid.getYvel() + std::get<1>(alignVel) + std::get<1>(cohVel) + std::get<1>(sepVel) + std::get<1>(predVel);      
         
- //      Steer Away from the edges (Option 1)       
+ //      Steer Away from the edges (Option 0)       
         if (option == 0) {
             
             if (boid.getX() < BUFFER_ZONE - WIDTH){
@@ -280,7 +309,7 @@ public:
         X += Xvel * TIME_STEP;
         Y += Yvel * TIME_STEP;      
 
-//      Reappear the other side of the box (Option 2)    
+//      Reappear the other side of the box (Option 1)    
         if (option == 1) {
             if (X > WIDTH || X < -WIDTH){
                 X = -X;
@@ -299,6 +328,9 @@ public:
        
     }      
 };
+
+// NEIGHBOUR
+// The neighbour function generates a list of boids which are within a specified radius of the boid in question
 
 std::vector<Boid> Flock :: neighbour(Boid& boid, const float visibility) {
     
@@ -326,7 +358,7 @@ std::vector<Boid> Flock :: neighbour(Boid& boid, const float visibility) {
 int main(int argc, char *argv[]) {
 
     if (argc < 2) {
-        printf("Usage: \n ./main [number of threads]\n");
+        printf("Usage: \n ./swarm2D [number of threads]\n");
         return 1;
     }
     
@@ -337,31 +369,37 @@ int main(int argc, char *argv[]) {
     double initial, final, t1, t2, t3;   
     
     initial = omp_get_wtime();
-// Initialise data file
+    // Initialise data file
     std::string fileName;
     fileName = "boid_data2D.csv";
     std::ofstream data(fileName); 
-// Initialise file with number of frames
+    // Initialise file with generic info e.g. constants
     std::ofstream infoFile("infoFile2D.csv");
     
-// Create birds flock
+    // Create flock (in this case birds)
     Flock birds{};
     birds.flockSize(numBirds);
-//    t1 = omp_get_wtime();
-//    printf("Birds create: %8.6f s\n",t1-initial); 
+    //    t1 = omp_get_wtime();
+    //    printf("Birds create: %8.6f s\n",t1-initial); 
     
-// Generate the flock of birds    
+    // Generate birds in the flock    
     birds.generate();
-//    t2 = omp_get_wtime();
-//    printf("Birds generate: %8.6f s\n",t2-initial);    
+    //    t2 = omp_get_wtime();
+    //    printf("Birds generate: %8.6f s\n",t2-initial);    
  
+     
+    // Write infoFile.csv file
+    infoFile << "HEIGHT, WIDTH, MAX_SPEED, TIME_LIMIT, TIME_STEP, NUM_BOIDS, ALIGN_VISIBILITY, \
+                 COHESION_VISIBILITY, SEPERATION_VISIBILITY, ALIGN_FORCE,  COHESION_FORCE, SEPERATION_FORCE\n";
     
-// Advance the birds   
+    infoFile << std::to_string(HEIGHT) + "," + std::to_string(WIDTH) + "," + std::to_string(MAX_SPEED) \
+                + "," + std::to_string(TIME_LIMIT) + "," + std::to_string(TIME_STEP) + "," \
+                + std::to_string(NUM_BOIDS) + "," + std::to_string(ALIGN_VISIBILITY) + "," \
+                + std::to_string(COHESION_VISIBILITY) + "," + std::to_string(SEPERATION_VISIBILITY)\
+                + "," + std::to_string(ALIGN_FORCE) +"," + std::to_string(COHESION_FORCE) + ","\
+                + std::to_string(SEPERATION_FORCE);
     
-    infoFile << "HEIGHT, WIDTH, MAX_SPEED, TIME_LIMIT, TIME_STEP, NUM_BOIDS, ALIGN_VISIBILITY, COHESION_VISIBILITY, SEPERATION_VISIBILITY, ALIGN_FORCE,  COHESION_FORCE, SEPERATION_FORCE\n";
-    
-    infoFile << std::to_string(HEIGHT) + "," + std::to_string(WIDTH) + "," + std::to_string(MAX_SPEED) + "," + std::to_string(TIME_LIMIT) + "," + std::to_string(TIME_STEP) + "," +  std::to_string(NUM_BOIDS) + "," + std::to_string(ALIGN_VISIBILITY) + "," + std::to_string(COHESION_VISIBILITY) + "," + std::to_string(SEPERATION_VISIBILITY) + "," + std::to_string(ALIGN_FORCE) +"," + std::to_string(COHESION_FORCE) + "," + std::to_string(SEPERATION_FORCE);
-    
+    // Write header columns for boid_data2D.csv file
     
     if (omp_get_thread_num() == 0) {
         for (int num = 0; num < NUM_BOIDS; num ++) 
@@ -373,19 +411,16 @@ int main(int argc, char *argv[]) {
     }
 
     
+    // Advance the birds   
     float time = 0;
-  
     while (time < TIME_LIMIT) {
         if (omp_get_thread_num() == 0) {
             for (int num = 0; num < NUM_BOIDS; num ++) {
                 data << birds.m_boids[num].getX() << "," 
-                     << birds.m_boids[num].getY() <<",";
-   
-                
+                     << birds.m_boids[num].getY() <<","; 
             }
             data << '\n';
         }
-        
     #pragma omp parallel private(k)
     {
         #pragma omp for

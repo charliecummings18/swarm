@@ -16,7 +16,7 @@ const int NUM_BOIDS = 200;
 const float ALIGN_VISIBILITY = 40;
 const float COHESION_VISIBILITY = 80;
 const float SEPERATION_VISIBILITY = 40;
-const float PREDATOR_VISIBILITY = 90;
+const float PREDATOR_VISIBILITY = 60;
 
 const float ALIGN_FORCE = 0.1;
 const float COHESION_FORCE = 0.1;
