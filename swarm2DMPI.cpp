@@ -21,32 +21,33 @@
 class Boid {
         
 private: 
-    float m_X{};
-    float m_Y{};
+    double m_X{};
+    double m_Y{};
         
-    float m_Xvel{};
-    float m_Yvel{};
+    double m_Xvel{};
+    double m_Yvel{};
     
     int m_id{};
 public:    
     
-    Boid(float x, float y, float xVel, float yVel, int id)
+    Boid(double x, double y, double xVel, double yVel, int id)
         :m_X{x}, m_Y{y}, m_Xvel{xVel}, m_Yvel{yVel}, m_id{id}
     {
     }
     
-    void update(float x, float y, float xVel, float yVel) {
+    void update(double x, double y, double xVel, double yVel, int id) {
         
         m_X = x;
         m_Y = y;      
         m_Xvel = xVel;
-        m_Yvel = yVel;      
+        m_Yvel = yVel; 
+        m_id = id;
     }
     
-    float getX()  {return m_X;}
-    float getY()  {return m_Y;}  
-    float getXvel()  {return m_Xvel;}   
-    float getYvel()  {return m_Yvel;}  
+    double getX()  {return m_X;}
+    double getY()  {return m_Y;}  
+    double getXvel()  {return m_Xvel;}   
+    double getYvel()  {return m_Yvel;}  
     int getid() const {return m_id;}
     
 };
@@ -62,36 +63,42 @@ private:
 public:
     
     std::vector<Boid> m_boids; 
-    std::vector<Boid> neighbour(Boid& boid, const float visibility);
+    std::vector<Boid> neighbour(Boid& boid, const double visibility);
     void flockSize (int numBoids){
         m_numBoids = numBoids;
     }
     
-    void generate(int boid_start, int boid_end) {
-        float X, Y, Xvel, Yvel;
+    void generate(int boid_end) {
+        double X, Y, Xvel, Yvel;
         int i;
         unsigned int seed = 88;
         std::srand(seed); 
 
-            for (i = boid_start; i < boid_end ; i++) {
+            for (i = 0; i < boid_end ; i++) {
                 
-                X = static_cast<float>(std::rand())*2*WIDTH/RAND_MAX - WIDTH;
-                Y = static_cast<float>(std::rand())*2*HEIGHT/RAND_MAX - HEIGHT;              
-                Xvel = static_cast<float>(std::rand())*2*MAX_SPEED/RAND_MAX - MAX_SPEED; 
-                Yvel = static_cast<float>(std::rand())*2*MAX_SPEED/RAND_MAX - MAX_SPEED;
+                X = static_cast<double>(std::rand())*2*WIDTH/RAND_MAX - WIDTH;
+                Y = static_cast<double>(std::rand())*2*HEIGHT/RAND_MAX - HEIGHT;              
+                Xvel = static_cast<double>(std::rand())*2*MAX_SPEED/RAND_MAX - MAX_SPEED; 
+                Yvel = static_cast<double>(std::rand())*2*MAX_SPEED/RAND_MAX - MAX_SPEED;
                 
                 m_boids.push_back(Boid(X, Y, Xvel, Yvel, i));
             }
     }
     
+    void generate_empty(int boid_end) {
+        int i;
+            for (i = 0; i < boid_end ; i++) {
+                m_boids.push_back(Boid(0, 0, 0, 0, 0));
+            }
+    }   
     
     
 // ALIGN RULE
 // This aligns a boids velocity with the average velocity of its neighbours
 // Neighbours are in the range ALIGN_VISIBILITY and the rule has strength ALIGN_FORCE
 
-    std::tuple<float,float> align(Boid& boid){
-        float tot_Xvel = 0,  tot_Yvel = 0, steering_Xvel = 0, 
+    std::tuple<double,double> align(Boid& boid){
+        double tot_Xvel = 0,  tot_Yvel = 0, steering_Xvel = 0, 
               steering_Yvel = 0, desiredXvel = 0, desiredYvel = 0;
 
 
@@ -133,8 +140,8 @@ public:
 // This changes a boids velocity towards the average position of its neighbours
 // Neighbours are in the range COHESION_VISIBILITY and the rule has strength COHESION_FORCE
 
-    std::tuple<float,float> cohesion(Boid& boid){
-        float tot_X = 0,  tot_Y = 0, steering_X = 0, 
+    std::tuple<double,double> cohesion(Boid& boid){
+        double tot_X = 0,  tot_Y = 0, steering_X = 0, 
               steering_Y = 0, desiredX = 0, desiredY = 0;
 
 
@@ -173,9 +180,9 @@ public:
 // from boids when they are in the radius SEPERATION_VISIBILITY
 // This rule has strength SEPERATION_FORCE
 
-    std::tuple<float,float> seperation(Boid& boid){
-        float X_sep = 0,  Y_sep = 0, X_repulsion = 0, Y_repulsion = 0;
-        float distance;
+    std::tuple<double,double> seperation(Boid& boid){
+        double X_sep = 0,  Y_sep = 0, X_repulsion = 0, Y_repulsion = 0;
+        double distance;
 
 
         std::vector<Boid> localBoids = neighbour(boid, SEPERATION_VISIBILITY);
@@ -215,9 +222,9 @@ public:
 // The predator rule is very similar to the seperation rule but the force does not scale with distance and comes into 
 // action when predators are in the range PREDATOR VISIBILITY and has the force PREDATOR FORCE.
 
-    std::tuple<float,float> predator(Boid& boid){
-        float X_pred = 0,  Y_pred = 0, X_repulse = 0, Y_repulse = 0;
-        float distance;
+    std::tuple<double,double> predator(Boid& boid){
+        double X_pred = 0,  Y_pred = 0, X_repulse = 0, Y_repulse = 0;
+        double distance;
 
 
         std::vector<Boid> localBoids = neighbour(boid, PREDATOR_VISIBILITY);
@@ -266,16 +273,16 @@ public:
         
 
 
-        float X = boid.getX();
-        float Y = boid.getY();     
-        float Xvel = 0;
-        float Yvel = 0;     
-        float magnitude = 0;  
+        double X = boid.getX();
+        double Y = boid.getY();     
+        double Xvel = 0;
+        double Yvel = 0;     
+        double magnitude = 0;  
         
-        std::tuple<float,float> alignVel = align(boid);
-        std::tuple<float,float> cohVel = cohesion(boid);
-        std::tuple<float,float> sepVel = seperation(boid); 
-        std::tuple<float,float> predVel = predator(boid);        
+        std::tuple<double,double> alignVel = align(boid);
+        std::tuple<double,double> cohVel = cohesion(boid);
+        std::tuple<double,double> sepVel = seperation(boid); 
+        std::tuple<double,double> predVel = predator(boid);        
         
         Xvel = boid.getXvel() + std::get<0>(alignVel) + std::get<0>(cohVel) + std::get<0>(sepVel) + std::get<0>(predVel);
         Yvel = boid.getYvel() + std::get<1>(alignVel) + std::get<1>(cohVel) + std::get<1>(sepVel) + std::get<1>(predVel);      
@@ -322,7 +329,7 @@ public:
             
 
             
-        boid.update(X, Y, Xvel, Yvel);
+        boid.update(X, Y, Xvel, Yvel, boid.getid());
         
 
        
@@ -332,17 +339,17 @@ public:
 // NEIGHBOUR
 // The neighbour function generates a list of boids which are within a specified radius of the boid in question
 
-std::vector<Boid> Flock :: neighbour(Boid& boid, const float visibility) {
+std::vector<Boid> Flock :: neighbour(Boid& boid, const double visibility) {
     
 
     std::vector<Boid> Neighbours;
     
     for (int i =0; i < m_numBoids; i++) {
         
-        float Xdist = m_boids[i].getX() - boid.getX();
-        float Ydist = m_boids[i].getY() - boid.getY();      
+        double Xdist = m_boids[i].getX() - boid.getX();
+        double Ydist = m_boids[i].getY() - boid.getY();      
         
-        float distance = sqrt( pow(Xdist, 2.0) + pow(Ydist, 2.0 ));
+        double distance = sqrt( pow(Xdist, 2.0) + pow(Ydist, 2.0 ));
         
         if (boid.getid() != m_boids[i].getid() && distance < visibility) {
             Neighbours.push_back( m_boids[i] );
@@ -375,7 +382,7 @@ int main(int argc, char *argv[]) {
     wtime = MPI_Wtime();
     
     CHUNKSIZE = NUM_BOIDS/size;
-    int actual_num_boids = CHUNKSIZE*size; // due to rounding, number of boids may not be exactly NUM_BOIDS
+    int NUM_BOIDS_ADJUSTED = CHUNKSIZE*size; // due to rounding, number of boids may not be exactly NUM_BOIDS
     // Initialise data file
     std::string fileName;
     fileName = "boid_data2D.csv";
@@ -390,10 +397,13 @@ int main(int argc, char *argv[]) {
     //    printf("Birds create: %8.6f s\n",wtime); 
     
     // MASTER rank generates birds in the flock with random positions
-    int boid_start = CHUNKSIZE*rank;
-    int boid_end = CHUNKSIZE*(rank + 1);
-    birds.generate(boid_start, boid_end);
-
+    if (rank == MASTER){
+        birds.generate(NUM_BOIDS_ADJUSTED);
+    }
+    if (rank != MASTER){
+        birds.generate_empty(CHUNKSIZE);
+    }
+    
     //    wtime = MPI_Wtime() - wtime;
     //    printf("Birds generate: %8.6f s\n",wtime);    
  
@@ -422,19 +432,58 @@ int main(int argc, char *argv[]) {
         data << '\n';
     }
     
+    // Scatter variables to processes from MASTER
     
-/*    
-    for (int i = 0; i < NUM_BOIDS; i++){
-        if (rank == MASTER){
-            X = birds.m_boids[i].getX();
-            Y = birds.m_boids[i].getY();
-            Xvel = birds.m_boids[i].getXvel();
-            Yvel = birds.m_boids[i].getYvel();
+    
+    double MASTERx_tran[NUM_BOIDS_ADJUSTED];
+    double MASTERy_tran[NUM_BOIDS_ADJUSTED];
+    double MASTERxvel_tran[NUM_BOIDS_ADJUSTED];
+    double MASTERyvel_tran[NUM_BOIDS_ADJUSTED];   
+    int    MASTERid_tran[NUM_BOIDS_ADJUSTED];     
+    
+    if (rank == MASTER){
+        for (int j = 0; j < NUM_BOIDS_ADJUSTED; j++){
+            MASTERx_tran[j] = birds.m_boids[j].getX();
+            MASTERy_tran[j] = birds.m_boids[j].getY();
+            MASTERxvel_tran[j] = birds.m_boids[j].getXvel();
+            MASTERyvel_tran[j] = birds.m_boids[j].getYvel();   
+            MASTERid_tran[j] = birds.m_boids[j].getid();
+        }
+    }
+    
+    double X_tran[CHUNKSIZE];
+    double Y_tran[CHUNKSIZE];
+    double Xvel_tran[CHUNKSIZE];
+    double Yvel_tran[CHUNKSIZE];   
+    int    id_tran[CHUNKSIZE];
+    
+        
+    err = MPI_Scatter(&MASTERx_tran, CHUNKSIZE, MPI_DOUBLE, &X_tran, CHUNKSIZE, MPI_DOUBLE, MASTER, MPI_COMM_WORLD);    
+    err = MPI_Scatter(&MASTERy_tran, CHUNKSIZE, MPI_DOUBLE, &Y_tran, CHUNKSIZE, MPI_DOUBLE, MASTER, MPI_COMM_WORLD);
+    err = MPI_Scatter(&MASTERxvel_tran, CHUNKSIZE, MPI_DOUBLE, &Xvel_tran, CHUNKSIZE, MPI_DOUBLE, MASTER, MPI_COMM_WORLD);   
+    err = MPI_Scatter(&MASTERyvel_tran, CHUNKSIZE, MPI_DOUBLE, &Yvel_tran, CHUNKSIZE, MPI_DOUBLE, MASTER, MPI_COMM_WORLD);
+    err = MPI_Scatter(&MASTERid_tran, CHUNKSIZE, MPI_INT, &id_tran, CHUNKSIZE, MPI_INT, MASTER, MPI_COMM_WORLD);
+    
+
+
+
+        for (int j = 0; j < CHUNKSIZE; j++){
+            
+                
+            birds.m_boids[j].update(X_tran[j], Y_tran[j] , Xvel_tran[j] , Yvel_tran[j] , id_tran[j] ); 
+            
+            // This bit is checking its sent correctly, just printing out the values
+            if (rank == 1) {
+                printf("GetID: %d, getX: %f\n", birds.m_boids[j].getid(), birds.m_boids[j].getX());
+            }
         }
 
-    
+
+
+
+/*    
     // Advance the birds   
-    float time = 0;
+    double time = 0;
     while (time < TIME_LIMIT) {
         
         
@@ -451,7 +500,9 @@ int main(int argc, char *argv[]) {
         }
     time += TIME_STEP;
     }
-*/   
+
+*/
+    
     data.close();
     
     wtime = MPI_Wtime() - wtime;       
