@@ -12,7 +12,7 @@ const float TIME_LIMIT = 10;
 const float TIME_STEP = 0.01;
 
 
-const int NUM_BOIDS = 200;
+const int NUM_BOIDS = 10;
 const float ALIGN_VISIBILITY = 40;
 const float COHESION_VISIBILITY = 80;
 const float SEPERATION_VISIBILITY = 40;
