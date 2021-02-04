@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <ctime>
 #include <vector>
+#include <array>
 #include <functional>
 #include "constants.h"
 #include <mpi.h>
@@ -432,9 +433,11 @@ int main(int argc, char *argv[]) {
     
    
     // Advance the birds   
-    double time = 0;
+    double time = 0;            
+
     while (time < 0.009) {
         
+        int boid_count;
         
         if (rank == MASTER) {
             for (int num = 0; num < NUM_BOIDS; num ++) {
@@ -444,64 +447,111 @@ int main(int argc, char *argv[]) {
             data << '\n';
         }
         // Each process updates chunk of boids dependent on x position
-        MPI_Request Request;
+        MPI_Request Request;            
         MPI_Status Status;
-        int boid_count = 0;
-        for (k = 0; k < NUM_BOIDS; k++) {
-            if (rank == MASTER){
-                int assigned_rank = ((birds.m_boids[k].getX() + WIDTH)/CHUNKSIZE) + 1;
-                
-                double temp_x = birds.m_boids[k].getX();
-                double temp_y = birds.m_boids[k].getY();                
-                double temp_xvel = birds.m_boids[k].getXvel();                
-                double temp_yvel = birds.m_boids[k].getYvel();
-                int temp_id = birds.m_boids[k].getid();    
-
-                //printf("assigned_rank: %d, xval: %f\n", assigned_rank, temp_x);
-
-                MPI_Send (&temp_x, 1, MPI_DOUBLE, assigned_rank, 0, MPI_COMM_WORLD);             
-
-                
-//                MPI_Isend (&temp_y, 1, MPI_DOUBLE, assigned_rank, 0, MPI_COMM_WORLD, &Stat);                
-//                MPI_Isend (&temp_xvel, 1, MPI_DOUBLE, assigned_rank, 0, MPI_COMM_WORLD, &Stat);                
-//                MPI_Isend (&temp_yvel, 1, MPI_DOUBLE, assigned_rank, 0, MPI_COMM_WORLD, &Stat);
-//                MPI_Isend (&temp_id, 1, MPI_INT, assigned_rank, 0, MPI_COMM_WORLD, &Stat);                
-            }
-            else if (rank =! MASTER){
-                
-                double temp_x = 0;
-                double temp_y = 0;                
-                double temp_xvel = 0;                
-                double temp_yvel = 0;
-                int temp_id = -1; 
-                MPI_Irecv (&temp_x, 1, MPI_DOUBLE, MASTER, 0, MPI_COMM_WORLD, &Request);
-//              MPI_Irecv (&temp_y, 1, MPI_DOUBLE, MASTER, 0, MPI_COMM_WORLD, &Stat);           
-//              MPI_Irecv (&temp_xvel, 1, MPI_DOUBLE, MASTER, 0, MPI_COMM_WORLD, &Stat);               
-//              MPI_Irecv (&temp_yvel, 1, MPI_DOUBLE, MASTER, 0, MPI_COMM_WORLD, &Stat);   
-//              MPI_Irecv (&temp_id, 1, MPI_INT, MASTER, 0, MPI_COMM_WORLD, &Stat);   
-                MPI_Wait (&Request, &Status);
-                if (rank == 1){
-                    printf("temp_x: %f\n", temp_x);
-                 }
-                if (temp_id =! -1){
-                    birds.add_boid(temp_x, temp_y, temp_xvel, temp_yvel, temp_id);
-                    boid_count+=1;
-                }
-            }
-        }
- /*       
-        for (k = 0; k < boid_count; k++) {
-            birds.advance(birds.m_boids[k], data, OPTION);
-        }
-
-                
-        double SEND_x[boid_count];
-        double SEND_y[boid_count];
-        double SEND_xvel[boid_count];
-        double SEND_yvel[boid_count];   
-        int    SEND_id[boid_count]; 
+        
+        
+        if (rank == MASTER){        
+            int assigned_rank = 1; 
+            double x_chunk = -WIDTH;
             
-        if (rank =! MASTER){     
+            while ( x_chunk < WIDTH) {
+                std::vector<double>temp_x;
+                std::vector<double>temp_y;                
+                std::vector<double>temp_xvel;                
+                std::vector<double>temp_yvel;                
+                std::vector<int>temp_id;                
+                for (k = 0; k < NUM_BOIDS; k++) {
+
+                    
+                    if ( x_chunk < birds.m_boids[k].getX() &&  birds.m_boids[k].getX() < x_chunk+CHUNKSIZE){
+                        temp_x.push_back(birds.m_boids[k].getX());
+                        temp_y.push_back(birds.m_boids[k].getY());                       
+                        temp_xvel.push_back(birds.m_boids[k].getXvel());                   
+                        temp_yvel.push_back(birds.m_boids[k].getYvel());
+                        temp_id.push_back(birds.m_boids[k].getid());     
+
+                    }
+                }
+                int temp_size = temp_x.size();
+                
+                
+                
+                double temp_x_1[temp_size];
+                double temp_y_1[temp_size];                
+                double temp_xvel_1[temp_size];  
+                double temp_yvel_1[temp_size];                
+                int temp_id_1[temp_size];
+
+                
+                for (k = 0; k < temp_size; k++){
+                    temp_x_1[k] = temp_x[k];
+                    temp_y_1[k] = temp_y[k];
+                    temp_xvel_1[k] = temp_xvel[k];
+                    temp_yvel_1[k] = temp_yvel[k];
+                    temp_id_1[k] = temp_id[k];
+                }
+                                
+                err = MPI_Send (&temp_size, 1, MPI_INT, assigned_rank, assigned_rank, MPI_COMM_WORLD);
+                
+                
+                err = MPI_Send (&temp_x_1, temp_x.size(), MPI_DOUBLE, assigned_rank, assigned_rank, MPI_COMM_WORLD);  
+                err = MPI_Send (&temp_y_1, temp_y.size(), MPI_DOUBLE, assigned_rank, assigned_rank, MPI_COMM_WORLD);
+                err = MPI_Send (&temp_xvel_1, temp_xvel.size(), MPI_DOUBLE, assigned_rank, assigned_rank, MPI_COMM_WORLD); 
+                err = MPI_Send (&temp_yvel_1, temp_yvel.size(), MPI_DOUBLE, assigned_rank, assigned_rank, MPI_COMM_WORLD); 
+                err = MPI_Send (&temp_id_1, temp_id.size(), MPI_INT, assigned_rank, assigned_rank, MPI_COMM_WORLD);                 
+                
+                
+                x_chunk += CHUNKSIZE;
+                assigned_rank += 1;
+                temp_x.clear();
+            }
+        }
+        else if (rank != MASTER){
+
+               
+            err = MPI_Recv (&boid_count, 1, MPI_INT, MASTER, rank, MPI_COMM_WORLD, &Status);
+                
+
+                
+            double temp_x[boid_count];
+            double temp_y[boid_count];   
+            double temp_xvel[boid_count];                
+            double temp_yvel[boid_count];
+            int temp_id[boid_count];  
+                
+            err = MPI_Recv (&temp_x, boid_count, MPI_DOUBLE, MASTER, rank, MPI_COMM_WORLD, &Status);
+            err = MPI_Recv (&temp_y, boid_count, MPI_DOUBLE, MASTER, rank, MPI_COMM_WORLD, &Status);                
+            err = MPI_Recv (&temp_xvel, boid_count, MPI_DOUBLE, MASTER, rank, MPI_COMM_WORLD, &Status);                
+            err = MPI_Recv (&temp_yvel, boid_count, MPI_DOUBLE, MASTER, rank, MPI_COMM_WORLD, &Status);                
+            err = MPI_Recv (&temp_id, boid_count, MPI_INT, MASTER, rank, MPI_COMM_WORLD, &Status);                
+
+            for (k = 0; k < boid_count; k++){
+    
+                birds.add_boid(temp_x[k], temp_y[k], temp_xvel[k], temp_yvel[k], temp_id[k]);
+                    //printf("boid_x: %f, rank: %d\n", birds.m_boids[k].getX(), rank);
+            }  
+        
+        // ALL GOOD UP TO HERE //
+        
+        
+            for (k = 0; k < boid_count; k++) {
+            birds.advance(birds.m_boids[k], data, OPTION);
+            }
+
+                
+                
+        } 
+/*        
+        if (rank != MASTER){        
+            double SEND_x[boid_count];
+            double SEND_y[boid_count];
+            double SEND_xvel[boid_count];
+            double SEND_yvel[boid_count];   
+            int    SEND_id[boid_count]; 
+        
+        
+
             for (int j = 0; j < boid_count; j++){
                 SEND_x[j] = birds.m_curr_boids[j].getX();
                 SEND_y[j] = birds.m_curr_boids[j].getY();
@@ -511,6 +561,10 @@ int main(int argc, char *argv[]) {
             }
         }
         
+      
+        // ALL PROCS //
+        
+    
         double RECV_x[NUM_BOIDS];
         double RECV_y[NUM_BOIDS];
         double RECV_xvel[NUM_BOIDS];
@@ -524,15 +578,16 @@ int main(int argc, char *argv[]) {
         err = MPI_Gather(&SEND_yvel,boid_count, MPI_DOUBLE, &RECV_yvel,boid_count, MPI_DOUBLE, MASTER, MPI_COMM_WORLD); 
         err = MPI_Gather(&SEND_id,boid_count, MPI_INT, &RECV_id,boid_count, MPI_INT, MASTER, MPI_COMM_WORLD);       
         
-        
-        for (int j = 0; j < NUM_BOIDS; j++){
-            int id = RECV_id[j];
+        if (rank == MASTER){
+            for (int j = 0; j < NUM_BOIDS; j++){
+                int id = RECV_id[j];
             
-            birds.m_boids[id].update(RECV_x[j], RECV_y[j] , RECV_xvel[j] , RECV_yvel[j] , RECV_id[j] ); 
+                birds.m_boids[id].update(RECV_x[j], RECV_y[j] , RECV_xvel[j] , RECV_yvel[j] , RECV_id[j] ); 
+            }
         }
         
-        
- */      
+ */   
+       
     time += TIME_STEP;
     }
 
