@@ -270,7 +270,7 @@ public:
 // Option 1: Boids reappear on the other side of the screen. This changes their positions so that the boids wrap around the screen.
     
     
-    void advance(Boid& boid, std::ofstream& file, int option) {
+    void advance(Boid& boid, std::ofstream& file, int option, int boid_count) {
         
 
 
@@ -383,7 +383,7 @@ int main(int argc, char *argv[]) {
     wtime = MPI_Wtime();
     
     CHUNKSIZE = (2*WIDTH)/(double(size));
-//    int NUM_BOIDS_ADJUSTED = CHUNKSIZE*size; // due to rounding, number of boids may not be exactly NUM_BOIDS
+    
     // Initialise data file
     std::string fileName;
     fileName = "boid_data2D.csv";
@@ -431,7 +431,7 @@ int main(int argc, char *argv[]) {
     // Advance the birds   
     double time = 0;            
 
-    while (time < 0.009) {
+    while (time < 0.021) {
         
         int boid_count;
         double *SEND_x;
@@ -444,7 +444,7 @@ int main(int argc, char *argv[]) {
         double RECV_y[NUM_BOIDS];
         double RECV_xvel[NUM_BOIDS];
         double RECV_yvel[NUM_BOIDS];   
-        int    RECV_id[NUM_BOIDS]; 
+        int    RECV_id[NUM_BOIDS];
         
         double *curr_x;
         double *curr_y;   
@@ -453,14 +453,15 @@ int main(int argc, char *argv[]) {
         int *curr_id; 
         
         
-        int worker_sizes[3];
-        int displs[3];
-        
+        int worker_sizes[size];
+        int displs[size];
+        displs[0]=0;
         
         MPI_Request Request;            
         MPI_Status Status;
         int* MASTER_boid_id_set;
         
+/////////////////// MASTER PROCESS /////////////////////////
         if (rank == MASTER) {
             for (int num = 0; num < NUM_BOIDS; num ++) {
                 data << birds.m_boids[num].getX() << "," 
@@ -494,14 +495,12 @@ int main(int argc, char *argv[]) {
 
                     }
                 }
-                for (k = 0; k < temp_x_1.size(); k++) {
-                //printf("temp_x: %f, arank: %d\n", temp_x_1[k], assigned_rank);
-                }
  
                 int temp_size = temp_x_1.size();
 
                 worker_sizes[assigned_rank] = temp_size;
-                displs[assigned_rank] = 0;
+
+                displs[assigned_rank+1] = temp_size + displs[assigned_rank];
                 
                 if (assigned_rank == 0) {
                     
@@ -561,14 +560,19 @@ int main(int argc, char *argv[]) {
                 temp_x_1.clear();
                 
             }
-            int i = 0;
-            for (k = 0; k < NUM_BOIDS; k++) {
-                if (birds.m_boids[k].getid() == MASTER_boid_id_set[i]){
-                    birds.advance(birds.m_boids[k], data, OPTION);
-                    i++;
+            
+
+            for (k = 0; k < boid_count; k++) {
+                    birds.advance(birds.m_boids[MASTER_boid_id_set[k]], data, OPTION, boid_count);
+
                 }
-            }
+
+            
+            
+            
         }
+        
+        /////////////////// WORKER PROCESS /////////////////////////
         else if (rank != MASTER){
 
                
@@ -594,14 +598,9 @@ int main(int argc, char *argv[]) {
             } 
             
             for (k = 0; k < boid_count; k++) {
-            birds.advance(birds.m_boids[k], data, OPTION);
+            birds.advance(birds.m_boids[k], data, OPTION, boid_count);
              
             }
-            
-            
-    
-        
-        // ALL GOOD UP TO HERE //
 
         }
         
@@ -625,11 +624,10 @@ int main(int argc, char *argv[]) {
                 SEND_xvel[j] = curr_xvel[j];
                 SEND_yvel[j] = curr_yvel[j];
                 SEND_id[j] = curr_id[j];
-               // printf("id: %d, rank: %d\n",SEND_id[j], rank); 
+ 
             }
         }
         
-           
         else if ( rank != MASTER){
             for (int j = 0; j < boid_count; j++){
                 SEND_x[j] = birds.m_boids[j].getX();
@@ -637,14 +635,11 @@ int main(int argc, char *argv[]) {
                 SEND_xvel[j] = birds.m_boids[j].getXvel();
                 SEND_yvel[j] = birds.m_boids[j].getYvel();   
                 SEND_id[j] = birds.m_boids[j].getid();
-                //printf("id: %d, rank: %d\n",SEND_id[j], rank); 
-            
             }
+
         }
 
 
-
-        
         err = MPI_Gatherv(SEND_x,boid_count, MPI_DOUBLE, RECV_x , worker_sizes, displs ,MPI_DOUBLE, MASTER, MPI_COMM_WORLD); 
         err = MPI_Gatherv(SEND_y,boid_count, MPI_DOUBLE, RECV_y,worker_sizes,displs, MPI_DOUBLE, MASTER, MPI_COMM_WORLD); 
         err = MPI_Gatherv(SEND_xvel,boid_count, MPI_DOUBLE, RECV_xvel,worker_sizes, displs, MPI_DOUBLE, MASTER, MPI_COMM_WORLD);         
@@ -656,20 +651,15 @@ int main(int argc, char *argv[]) {
         if (rank == MASTER){
             
             for (int j = 0; j < NUM_BOIDS; j++){
-                
-                printf("recvx: %d\n", RECV_id[j]);
+            
                 int id = RECV_id[j];
-  /*           
+             
                 birds.m_boids[id].update(RECV_x[j], RECV_y[j] , RECV_xvel[j] , RECV_yvel[j] , RECV_id[j] ); 
-  */               
+                 
             }
         }
     
-    
-
     time += TIME_STEP;
-    
-    
     }
 
 

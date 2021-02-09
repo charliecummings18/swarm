@@ -59,7 +59,7 @@ def main():
 
 
     plt.show()
-#    anim.save('boid2D.mp4', writer='ffmpeg')  
+    anim.save('boid2DMPI.mp4', writer='ffmpeg')  
     
     return 0
     
