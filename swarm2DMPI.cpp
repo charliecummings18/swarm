@@ -270,7 +270,7 @@ public:
 // Option 1: Boids reappear on the other side of the screen. This changes their positions so that the boids wrap around the screen.
     
     
-    void advance(Boid& boid, std::ofstream& file, int option, int boid_count) {
+    void advance(Boid& boid, int option) {
         
 
 
@@ -400,7 +400,7 @@ int main(int argc, char *argv[]) {
     // MASTER rank generates birds in the flock with random positions
 
     birds.generate(NUM_BOIDS);
-
+    
    
     
     
@@ -431,29 +431,21 @@ int main(int argc, char *argv[]) {
     // Advance the birds   
     double time = 0;            
 
-    while (time < TIME_LIMIT) {
+    while (time < 0.009) {
         
         int boid_count;
-        double *SEND_x;
-        double *SEND_y;
-        double *SEND_xvel;
-        double *SEND_yvel;   
-        int    *SEND_id;
+
         
         double RECV_x[NUM_BOIDS];
         double RECV_y[NUM_BOIDS];
         double RECV_xvel[NUM_BOIDS];
         double RECV_yvel[NUM_BOIDS];   
         int    RECV_id[NUM_BOIDS];
+
         
-        double *curr_x;
-        double *curr_y;   
-        double *curr_xvel;                
-        double *curr_yvel;
-        int *curr_id; 
+        int *worker_sizes;
         
-        
-        int worker_sizes[size];
+        worker_sizes = (int *)malloc(size*sizeof(int));
         int displs[size];
         displs[0]=0;
         
@@ -468,222 +460,110 @@ int main(int argc, char *argv[]) {
                      << birds.m_boids[num].getY() <<","; 
             }
             data << '\n';
+        }
         // Each process updates chunk of boids dependent on x position
        
-            int assigned_rank = 0; 
-            double x_chunk = -WIDTH;
-        
 
-            while ( x_chunk < WIDTH) {
-                std::vector<double>temp_x_1;
-                std::vector<double>temp_y_1;                
-                std::vector<double>temp_xvel_1;                
-                std::vector<double>temp_yvel_1;                
-                std::vector<int>temp_id_1; 
+            std::vector<int>curr_x; 
+            std::vector<int>curr_y;
+            std::vector<int>curr_xvel;
+            std::vector<int>curr_yvel;
+            std::vector<int>curr_id;
+
+
+            for (k = 0; k < NUM_BOIDS; k++) {
                 
-                
-                for (k = 0; k < NUM_BOIDS; k++) {
-
-                    // LEFT HAND SIDE CHUNK
-                    if (assigned_rank == MASTER && birds.m_boids[k].getX() < x_chunk+CHUNKSIZE){
-                        temp_x_1.push_back(birds.m_boids[k].getX());
-                        temp_y_1.push_back(birds.m_boids[k].getY());                       
-                        temp_xvel_1.push_back(birds.m_boids[k].getXvel());                   
-                        temp_yvel_1.push_back(birds.m_boids[k].getYvel());
-                        temp_id_1.push_back(birds.m_boids[k].getid()); 
-                    }
-                    // RIGHT HAND SIDE CHUNK
-                    else if ( assigned_rank == size-1 &&  x_chunk < birds.m_boids[k].getX()){
-                        temp_x_1.push_back(birds.m_boids[k].getX());
-                        temp_y_1.push_back(birds.m_boids[k].getY());                       
-                        temp_xvel_1.push_back(birds.m_boids[k].getXvel());                   
-                        temp_yvel_1.push_back(birds.m_boids[k].getYvel());
-                        temp_id_1.push_back(birds.m_boids[k].getid());   
-                    }
-                    // MIDDLE CHUNKS
-                    else if ( x_chunk < birds.m_boids[k].getX() &&  birds.m_boids[k].getX() < x_chunk+CHUNKSIZE){
-                        temp_x_1.push_back(birds.m_boids[k].getX());
-                        temp_y_1.push_back(birds.m_boids[k].getY());                       
-                        temp_xvel_1.push_back(birds.m_boids[k].getXvel());                   
-                        temp_yvel_1.push_back(birds.m_boids[k].getYvel());
-                        temp_id_1.push_back(birds.m_boids[k].getid());   
-                    }
-                    
-
+                if (rank == MASTER && birds.m_boids[k].getX() < (-WIDTH + CHUNKSIZE*(rank+1)) ) {
+                        curr_x.push_back(birds.m_boids[k].getX());  
+                        curr_y.push_back(birds.m_boids[k].getY()); 
+                        curr_xvel.push_back(birds.m_boids[k].getXvel()); 
+                        curr_yvel.push_back(birds.m_boids[k].getYvel()); 
+                        curr_id.push_back(birds.m_boids[k].getid()); 
                     
                 }
+                
+                else if (rank == (size-1) && birds.m_boids[k].getX() > (-WIDTH + CHUNKSIZE*rank) ) {
+                        curr_x.push_back(birds.m_boids[k].getX());  
+                        curr_y.push_back(birds.m_boids[k].getY()); 
+                        curr_xvel.push_back(birds.m_boids[k].getXvel()); 
+                        curr_yvel.push_back(birds.m_boids[k].getYvel()); 
+                        curr_id.push_back(birds.m_boids[k].getid());                    
+                }
+                
+                else if (birds.m_boids[k].getX() < (-WIDTH + CHUNKSIZE*(rank+1)) && birds.m_boids[k].getX() > (-WIDTH + CHUNKSIZE*rank) ) {
+                        curr_x.push_back(birds.m_boids[k].getX());  
+                        curr_y.push_back(birds.m_boids[k].getY()); 
+                        curr_xvel.push_back(birds.m_boids[k].getXvel()); 
+                        curr_yvel.push_back(birds.m_boids[k].getYvel()); 
+                        curr_id.push_back(birds.m_boids[k].getid()); 
+                }
+            }
+                
+            boid_count = curr_id.size();
+
+            for (int i = 0; i < boid_count; i ++) {
+                    birds.advance(birds.m_boids[curr_id[i]], OPTION);
+            }
+     
+
+
+
+            //printf("curr_id size: %ld, rank = %d\n",curr_id.size(), rank);  
+
+        
+        // MASTER NOW GATHERS UPDATED VALUES
+        
+        err = MPI_Barrier(MPI_COMM_WORLD);
+        
+        
+        // ALLGATHER WORKER SIZES AND DISPLACEMENTS
+        
+        
+        err = MPI_Allgather(&boid_count, 1, MPI_INT, worker_sizes, 1, MPI_INT, MPI_COMM_WORLD);
+        
+        
+        displs[MASTER] = 0;
+        for (int i=1 ; i < size; i++){
+            displs[i] = worker_sizes[i-1] + displs[i-1];
+        }
+
+        
+        
+        // ALLGATHER ALL BOID DATA
+        
+        
+
+        err = MPI_Allgatherv(&curr_x, curr_id.size(), MPI_DOUBLE, RECV_x, worker_sizes,displs ,MPI_DOUBLE, MPI_COMM_WORLD); 
+        err = MPI_Allgatherv(&curr_y, curr_id.size(), MPI_DOUBLE, RECV_y, worker_sizes,displs ,MPI_DOUBLE, MPI_COMM_WORLD); 
+        err = MPI_Allgatherv(&curr_xvel, curr_id.size(), MPI_DOUBLE, RECV_xvel, worker_sizes, displs, MPI_DOUBLE, MPI_COMM_WORLD);         
+        err = MPI_Allgatherv(&curr_yvel, curr_id.size(), MPI_DOUBLE, RECV_yvel, worker_sizes, displs, MPI_DOUBLE, MPI_COMM_WORLD); 
+        err = MPI_Allgatherv(&curr_id, curr_id.size(), MPI_INT, RECV_id, worker_sizes, displs, MPI_INT, MPI_COMM_WORLD);       
+        
  
-                int temp_size = temp_x_1.size();
-
-                worker_sizes[assigned_rank] = temp_size;
-
-                displs[assigned_rank+1] = temp_size + displs[assigned_rank];
-                
-                if (assigned_rank == MASTER) {
-                    
-                    boid_count = temp_x_1.size();
-                    MASTER_boid_id_set = (int *)malloc(boid_count*sizeof(int)); 
-                    
-                    curr_x = (double *)malloc(boid_count*sizeof(double)); 
-                    curr_y = (double *)malloc(boid_count*sizeof(double)); 
-                    curr_xvel = (double *)malloc(boid_count*sizeof(double)); 
-                    curr_yvel = (double *)malloc(boid_count*sizeof(double)); 
-                    curr_id = (int *)malloc(boid_count*sizeof(int)); 
-                    
-                    for (k = 0; k < boid_count; k++){
-                        curr_x[k] = temp_x_1[k];
-                        curr_y[k] = temp_y_1[k];
-                        curr_xvel[k] = temp_xvel_1[k];
-                        curr_yvel[k] = temp_yvel_1[k];
-                        curr_id[k] = temp_id_1[k];
-                        
-                        MASTER_boid_id_set[k] = temp_id_1[k];
-                    }
-                }
-                
-                
-                else if (assigned_rank != MASTER) {
-                    double temp_x[temp_size];
-                    double temp_y[temp_size];                
-                    double temp_xvel[temp_size];  
-                    double temp_yvel[temp_size];                
-                    int temp_id[temp_size];
-
-                    for (k = 0; k < temp_size; k++){
-                        temp_x[k] = temp_x_1[k];
-                        temp_y[k] = temp_y_1[k];
-                        temp_xvel[k] = temp_xvel_1[k];
-                        temp_yvel[k] = temp_yvel_1[k];
-                        temp_id[k] = temp_id_1[k];
-                    }
-                   
-
-                   
-                   
-                    err = MPI_Send (&temp_size, 1, MPI_INT, assigned_rank, assigned_rank, MPI_COMM_WORLD);
-
-                
-                    err = MPI_Send (&temp_x, temp_x_1.size(), MPI_DOUBLE, assigned_rank, assigned_rank, MPI_COMM_WORLD);  
-                    err = MPI_Send (&temp_y, temp_y_1.size(), MPI_DOUBLE, assigned_rank, assigned_rank, MPI_COMM_WORLD);
-                    err = MPI_Send (&temp_xvel, temp_xvel_1.size(), MPI_DOUBLE, assigned_rank, assigned_rank, MPI_COMM_WORLD); 
-                    err = MPI_Send (&temp_yvel, temp_yvel_1.size(), MPI_DOUBLE, assigned_rank, assigned_rank, MPI_COMM_WORLD); 
-                    err = MPI_Send (&temp_id, temp_id_1.size(), MPI_INT, assigned_rank, assigned_rank, MPI_COMM_WORLD);                 
-                
-                
-                }
-                
-                assigned_rank += 1;
-                x_chunk += CHUNKSIZE;
-
-                temp_x_1.clear();
-                
-            }
-            
-
-
-            for (k = 0; k < boid_count; k++) {
-                
-                birds.advance(birds.m_boids[MASTER_boid_id_set[k]], data, OPTION, boid_count);
-
-            }
-
-            
-            
-            
-        }
         
-        /////////////////// WORKER PROCESS /////////////////////////
-        else if (rank != MASTER){
 
-               
-            err = MPI_Recv (&boid_count, 1, MPI_INT, MASTER, rank, MPI_COMM_WORLD, &Status);
-
-                
-            curr_x = (double *)malloc(boid_count*sizeof(double)); 
-            curr_y = (double *)malloc(boid_count*sizeof(double)); 
-            curr_xvel = (double *)malloc(boid_count*sizeof(double)); 
-            curr_yvel = (double *)malloc(boid_count*sizeof(double)); 
-            curr_id = (int *)malloc(boid_count*sizeof(int)); 
-
-            
-            err = MPI_Recv (curr_x, boid_count, MPI_DOUBLE, MASTER, rank, MPI_COMM_WORLD, &Status);
-            err = MPI_Recv (curr_y, boid_count, MPI_DOUBLE, MASTER, rank, MPI_COMM_WORLD, &Status);                
-            err = MPI_Recv (curr_xvel, boid_count, MPI_DOUBLE, MASTER, rank, MPI_COMM_WORLD, &Status);                
-            err = MPI_Recv (curr_yvel, boid_count, MPI_DOUBLE, MASTER, rank, MPI_COMM_WORLD, &Status);                
-            err = MPI_Recv (curr_id, boid_count, MPI_INT, MASTER, rank, MPI_COMM_WORLD, &Status);  
-            
-            
-            for (k = 0; k < boid_count; k++){
-            birds.add_boid(curr_x[k], curr_y[k], curr_xvel[k], curr_yvel[k], curr_id[k]);
-            } 
-            
-            for (k = 0; k < boid_count; k++) {
-            birds.advance(birds.m_boids[k], data, OPTION, boid_count);
-             
-            }
-
-        }
-        
-         // ALL PROCS //
-                   
-            
          
-       
-        SEND_x = (double *)malloc(boid_count*sizeof(double)); 
-        SEND_y = (double *)malloc(boid_count*sizeof(double));
-        SEND_xvel = (double *)malloc(boid_count*sizeof(double));
-        SEND_yvel = (double *)malloc(boid_count*sizeof(double));
-        SEND_id = (int *)malloc(boid_count*sizeof(int));
-        
-        
-
-        if ( rank == MASTER) {
-            for (int j = 0; j < boid_count; j++){
-                SEND_x[j] = curr_x[j];
-                SEND_y[j] = curr_y[j];
-                SEND_xvel[j] = curr_xvel[j];
-                SEND_yvel[j] = curr_yvel[j];
-                SEND_id[j] = curr_id[j];
- 
-            }
-        }
-        
-        else if ( rank != MASTER){
-            for (int j = 0; j < boid_count; j++){
-                SEND_x[j] = birds.m_boids[j].getX();
-                SEND_y[j] = birds.m_boids[j].getY();
-                SEND_xvel[j] = birds.m_boids[j].getXvel();
-                SEND_yvel[j] = birds.m_boids[j].getYvel();   
-                SEND_id[j] = birds.m_boids[j].getid();
-            }
-
-        }
-
-
-        err = MPI_Gatherv(SEND_x,boid_count, MPI_DOUBLE, RECV_x , worker_sizes, displs ,MPI_DOUBLE, MASTER, MPI_COMM_WORLD); 
-        err = MPI_Gatherv(SEND_y,boid_count, MPI_DOUBLE, RECV_y,worker_sizes,displs, MPI_DOUBLE, MASTER, MPI_COMM_WORLD); 
-        err = MPI_Gatherv(SEND_xvel,boid_count, MPI_DOUBLE, RECV_xvel,worker_sizes, displs, MPI_DOUBLE, MASTER, MPI_COMM_WORLD);         
-        err = MPI_Gatherv(SEND_yvel,boid_count, MPI_DOUBLE, RECV_yvel,worker_sizes,displs, MPI_DOUBLE, MASTER, MPI_COMM_WORLD); 
-        err = MPI_Gatherv(SEND_id,boid_count, MPI_INT, RECV_id,worker_sizes,displs, MPI_INT, MASTER, MPI_COMM_WORLD);       
-        
-        
-        
-        if (rank == MASTER){
+        for (int j = 0; j < NUM_BOIDS; j++){
             
-            for (int j = 0; j < NUM_BOIDS; j++){
+            int id = RECV_id[j];
+            if (rank == 1){
+                printf("recv: %d, i:%d\n", RECV_id[j], j);
+            }
             
-                int id = RECV_id[j];
-             
-                birds.m_boids[id].update(RECV_x[j], RECV_y[j] , RECV_xvel[j] , RECV_yvel[j] , RECV_id[j] ); 
+            
+            //birds.m_boids[id].update(RECV_x[j], RECV_y[j] , RECV_xvel[j] , RECV_yvel[j] , RECV_id[j] ); 
                  
             }
-        }
+  
+  
+    curr_x.clear();
+    curr_y.clear();
+    curr_xvel.clear();
+    curr_yvel.clear();
+    curr_id.clear();
     
-        time += TIME_STEP;
-        
-
-        //printf("T=%f, boid count: %d, rank: %d\n", time, boid_count, rank);
-        //printf("%d\n", size);
+    
+    time += TIME_STEP;
     }
 
 
