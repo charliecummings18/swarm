@@ -398,9 +398,9 @@ int main(int argc, char *argv[]) {
     //    printf("Birds create: %8.6f s\n",wtime); 
     
     // MASTER rank generates birds in the flock with random positions
-    if (rank == MASTER){
-        birds.generate(NUM_BOIDS);
-    }
+
+    birds.generate(NUM_BOIDS);
+
    
     
     
@@ -431,7 +431,7 @@ int main(int argc, char *argv[]) {
     // Advance the birds   
     double time = 0;            
 
-    while (time < 0.021) {
+    while (time < TIME_LIMIT) {
         
         int boid_count;
         double *SEND_x;
@@ -468,7 +468,6 @@ int main(int argc, char *argv[]) {
                      << birds.m_boids[num].getY() <<","; 
             }
             data << '\n';
-        
         // Each process updates chunk of boids dependent on x position
        
             int assigned_rank = 0; 
@@ -485,15 +484,33 @@ int main(int argc, char *argv[]) {
                 
                 for (k = 0; k < NUM_BOIDS; k++) {
 
-
-                    if ( x_chunk < birds.m_boids[k].getX() &&  birds.m_boids[k].getX() < x_chunk+CHUNKSIZE){
+                    // LEFT HAND SIDE CHUNK
+                    if (assigned_rank == MASTER && birds.m_boids[k].getX() < x_chunk+CHUNKSIZE){
+                        temp_x_1.push_back(birds.m_boids[k].getX());
+                        temp_y_1.push_back(birds.m_boids[k].getY());                       
+                        temp_xvel_1.push_back(birds.m_boids[k].getXvel());                   
+                        temp_yvel_1.push_back(birds.m_boids[k].getYvel());
+                        temp_id_1.push_back(birds.m_boids[k].getid()); 
+                    }
+                    // RIGHT HAND SIDE CHUNK
+                    else if ( assigned_rank == size-1 &&  x_chunk < birds.m_boids[k].getX()){
                         temp_x_1.push_back(birds.m_boids[k].getX());
                         temp_y_1.push_back(birds.m_boids[k].getY());                       
                         temp_xvel_1.push_back(birds.m_boids[k].getXvel());                   
                         temp_yvel_1.push_back(birds.m_boids[k].getYvel());
                         temp_id_1.push_back(birds.m_boids[k].getid());   
-
                     }
+                    // MIDDLE CHUNKS
+                    else if ( x_chunk < birds.m_boids[k].getX() &&  birds.m_boids[k].getX() < x_chunk+CHUNKSIZE){
+                        temp_x_1.push_back(birds.m_boids[k].getX());
+                        temp_y_1.push_back(birds.m_boids[k].getY());                       
+                        temp_xvel_1.push_back(birds.m_boids[k].getXvel());                   
+                        temp_yvel_1.push_back(birds.m_boids[k].getYvel());
+                        temp_id_1.push_back(birds.m_boids[k].getid());   
+                    }
+                    
+
+                    
                 }
  
                 int temp_size = temp_x_1.size();
@@ -502,7 +519,7 @@ int main(int argc, char *argv[]) {
 
                 displs[assigned_rank+1] = temp_size + displs[assigned_rank];
                 
-                if (assigned_rank == 0) {
+                if (assigned_rank == MASTER) {
                     
                     boid_count = temp_x_1.size();
                     MASTER_boid_id_set = (int *)malloc(boid_count*sizeof(int)); 
@@ -525,7 +542,7 @@ int main(int argc, char *argv[]) {
                 }
                 
                 
-                else if (assigned_rank != 0) {
+                else if (assigned_rank != MASTER) {
                     double temp_x[temp_size];
                     double temp_y[temp_size];                
                     double temp_xvel[temp_size];  
@@ -552,6 +569,7 @@ int main(int argc, char *argv[]) {
                     err = MPI_Send (&temp_yvel, temp_yvel_1.size(), MPI_DOUBLE, assigned_rank, assigned_rank, MPI_COMM_WORLD); 
                     err = MPI_Send (&temp_id, temp_id_1.size(), MPI_INT, assigned_rank, assigned_rank, MPI_COMM_WORLD);                 
                 
+                
                 }
                 
                 assigned_rank += 1;
@@ -562,10 +580,12 @@ int main(int argc, char *argv[]) {
             }
             
 
-            for (k = 0; k < boid_count; k++) {
-                    birds.advance(birds.m_boids[MASTER_boid_id_set[k]], data, OPTION, boid_count);
 
-                }
+            for (k = 0; k < boid_count; k++) {
+                
+                birds.advance(birds.m_boids[MASTER_boid_id_set[k]], data, OPTION, boid_count);
+
+            }
 
             
             
@@ -659,7 +679,11 @@ int main(int argc, char *argv[]) {
             }
         }
     
-    time += TIME_STEP;
+        time += TIME_STEP;
+        
+
+        //printf("T=%f, boid count: %d, rank: %d\n", time, boid_count, rank);
+        //printf("%d\n", size);
     }
 
 
