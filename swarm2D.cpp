@@ -390,14 +390,15 @@ int main(int argc, char *argv[]) {
      
     // Write infoFile.csv file
     infoFile << "HEIGHT, WIDTH, MAX_SPEED, TIME_LIMIT, TIME_STEP, NUM_BOIDS, ALIGN_VISIBILITY, \
-                 COHESION_VISIBILITY, SEPERATION_VISIBILITY, ALIGN_FORCE,  COHESION_FORCE, SEPERATION_FORCE\n";
+                 COHESION_VISIBILITY, SEPERATION_VISIBILITY, ALIGN_FORCE,  COHESION_FORCE, SEPERATION_FORCE, PREDATORS\n";
     
     infoFile << std::to_string(HEIGHT) + "," + std::to_string(WIDTH) + "," + std::to_string(MAX_SPEED) \
                 + "," + std::to_string(TIME_LIMIT) + "," + std::to_string(TIME_STEP) + "," \
                 + std::to_string(NUM_BOIDS) + "," + std::to_string(ALIGN_VISIBILITY) + "," \
                 + std::to_string(COHESION_VISIBILITY) + "," + std::to_string(SEPERATION_VISIBILITY)\
                 + "," + std::to_string(ALIGN_FORCE) +"," + std::to_string(COHESION_FORCE) + ","\
-                + std::to_string(SEPERATION_FORCE);
+                + std::to_string(SEPERATION_FORCE) + ","\
+                    +std::to_string(PREDATORS);
     
     // Write header columns for boid_data2D.csv file
     

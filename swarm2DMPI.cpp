@@ -87,10 +87,6 @@ public:
             }
     }
     
-    void add_boid(double X, double Y, double Xvel, double Yvel, int i) {
-    
-        m_boids.push_back(Boid(X, Y, Xvel, Yvel, i));
-    }
      
     
     
@@ -407,14 +403,15 @@ int main(int argc, char *argv[]) {
     if (rank == MASTER){    
     // Write infoFile.csv file
         infoFile << "HEIGHT, WIDTH, MAX_SPEED, TIME_LIMIT, TIME_STEP, NUM_BOIDS, ALIGN_VISIBILITY, \
-                    COHESION_VISIBILITY, SEPERATION_VISIBILITY, ALIGN_FORCE,  COHESION_FORCE, SEPERATION_FORCE\n";
+                    COHESION_VISIBILITY, SEPERATION_VISIBILITY, ALIGN_FORCE,  COHESION_FORCE, SEPERATION_FORCE, PREDATORS\n";
     
         infoFile << std::to_string(HEIGHT) + "," + std::to_string(WIDTH) + "," + std::to_string(MAX_SPEED) \
                     + "," + std::to_string(TIME_LIMIT) + "," + std::to_string(TIME_STEP) + "," \
                     + std::to_string(NUM_BOIDS) + "," + std::to_string(ALIGN_VISIBILITY) + "," \
                     + std::to_string(COHESION_VISIBILITY) + "," + std::to_string(SEPERATION_VISIBILITY)\
                     + "," + std::to_string(ALIGN_FORCE) +"," + std::to_string(COHESION_FORCE) + ","\
-                    + std::to_string(SEPERATION_FORCE);
+                    + std::to_string(SEPERATION_FORCE) + ","\
+                    +std::to_string(PREDATORS);
                 
 
     // Write header columns for boid_data2D.csv file
@@ -431,21 +428,19 @@ int main(int argc, char *argv[]) {
     // Advance the birds   
     double time = 0;            
 
-    while (time < 0.009) {
+    while (time < TIME_LIMIT) {
         
         int boid_count;
 
         
-        double RECV_x[NUM_BOIDS];
-        double RECV_y[NUM_BOIDS];
-        double RECV_xvel[NUM_BOIDS];
-        double RECV_yvel[NUM_BOIDS];   
-        int    RECV_id[NUM_BOIDS];
+        double *RECV_x = (double *)malloc(NUM_BOIDS*sizeof(double));
+        double *RECV_y = (double *)malloc(NUM_BOIDS*sizeof(double));
+        double *RECV_xvel = (double *)malloc(NUM_BOIDS*sizeof(double));
+        double *RECV_yvel = (double *)malloc(NUM_BOIDS*sizeof(double));
+        int    *RECV_id = (int *)malloc(NUM_BOIDS*sizeof(int));
 
         
-        int *worker_sizes;
-        
-        worker_sizes = (int *)malloc(size*sizeof(int));
+        int *worker_sizes = (int *)malloc(size*sizeof(int));
         int displs[size];
         displs[0]=0;
         
@@ -463,57 +458,50 @@ int main(int argc, char *argv[]) {
         }
         // Each process updates chunk of boids dependent on x position
        
+        std::vector<int>temp_id;
 
-            std::vector<int>curr_x; 
-            std::vector<int>curr_y;
-            std::vector<int>curr_xvel;
-            std::vector<int>curr_yvel;
-            std::vector<int>curr_id;
-
-
-            for (k = 0; k < NUM_BOIDS; k++) {
+        for (k = 0; k < NUM_BOIDS; k++) {
                 
-                if (rank == MASTER && birds.m_boids[k].getX() < (-WIDTH + CHUNKSIZE*(rank+1)) ) {
-                        curr_x.push_back(birds.m_boids[k].getX());  
-                        curr_y.push_back(birds.m_boids[k].getY()); 
-                        curr_xvel.push_back(birds.m_boids[k].getXvel()); 
-                        curr_yvel.push_back(birds.m_boids[k].getYvel()); 
-                        curr_id.push_back(birds.m_boids[k].getid()); 
-                    
-                }
-                
-                else if (rank == (size-1) && birds.m_boids[k].getX() > (-WIDTH + CHUNKSIZE*rank) ) {
-                        curr_x.push_back(birds.m_boids[k].getX());  
-                        curr_y.push_back(birds.m_boids[k].getY()); 
-                        curr_xvel.push_back(birds.m_boids[k].getXvel()); 
-                        curr_yvel.push_back(birds.m_boids[k].getYvel()); 
-                        curr_id.push_back(birds.m_boids[k].getid());                    
-                }
-                
-                else if (birds.m_boids[k].getX() < (-WIDTH + CHUNKSIZE*(rank+1)) && birds.m_boids[k].getX() > (-WIDTH + CHUNKSIZE*rank) ) {
-                        curr_x.push_back(birds.m_boids[k].getX());  
-                        curr_y.push_back(birds.m_boids[k].getY()); 
-                        curr_xvel.push_back(birds.m_boids[k].getXvel()); 
-                        curr_yvel.push_back(birds.m_boids[k].getYvel()); 
-                        curr_id.push_back(birds.m_boids[k].getid()); 
-                }
+            if (rank == MASTER && birds.m_boids[k].getX() < (-WIDTH + CHUNKSIZE*(rank+1)) ) {
+; 
+                    temp_id.push_back(birds.m_boids[k].getid());
             }
                 
-            boid_count = curr_id.size();
-
-            for (int i = 0; i < boid_count; i ++) {
-                    birds.advance(birds.m_boids[curr_id[i]], OPTION);
+            else if (rank == (size-1) && birds.m_boids[k].getX() > (-WIDTH + CHUNKSIZE*rank) ) {
+                    temp_id.push_back(birds.m_boids[k].getid());
             }
-     
+                
+            else if (birds.m_boids[k].getX() < (-WIDTH + CHUNKSIZE*(rank+1)) && birds.m_boids[k].getX() > (-WIDTH + CHUNKSIZE*rank) ) {
+                    temp_id.push_back(birds.m_boids[k].getid());
+            }
+        }
+                
+        boid_count = temp_id.size();
+        
+        double *curr_x = (double *)calloc(boid_count,sizeof(double));
+        double *curr_y = (double *)calloc(boid_count,sizeof(double));
+        double *curr_xvel = (double *)calloc(boid_count,sizeof(double));
+        double *curr_yvel = (double *)calloc(boid_count,sizeof(double));
+        int *curr_id = (int *)calloc(boid_count,sizeof(int));
+            
 
-
-
-            //printf("curr_id size: %ld, rank = %d\n",curr_id.size(), rank);  
+        for (int i = 0; i < boid_count; i ++) {
+                birds.advance(birds.m_boids[temp_id[i]], OPTION);
+                curr_x[i] = birds.m_boids[temp_id[i]].getX();
+                curr_y[i] = birds.m_boids[temp_id[i]].getY();
+                curr_xvel[i] = birds.m_boids[temp_id[i]].getXvel();
+                curr_yvel[i] = birds.m_boids[temp_id[i]].getYvel();
+                curr_id[i] = birds.m_boids[temp_id[i]].getid();
+        }
+        
+        
 
         
         // MASTER NOW GATHERS UPDATED VALUES
+
         
-        err = MPI_Barrier(MPI_COMM_WORLD);
+
+        //err = MPI_Barrier(MPI_COMM_WORLD);
         
         
         // ALLGATHER WORKER SIZES AND DISPLACEMENTS
@@ -533,34 +521,23 @@ int main(int argc, char *argv[]) {
         
         
 
-        err = MPI_Allgatherv(&curr_x, curr_id.size(), MPI_DOUBLE, RECV_x, worker_sizes,displs ,MPI_DOUBLE, MPI_COMM_WORLD); 
-        err = MPI_Allgatherv(&curr_y, curr_id.size(), MPI_DOUBLE, RECV_y, worker_sizes,displs ,MPI_DOUBLE, MPI_COMM_WORLD); 
-        err = MPI_Allgatherv(&curr_xvel, curr_id.size(), MPI_DOUBLE, RECV_xvel, worker_sizes, displs, MPI_DOUBLE, MPI_COMM_WORLD);         
-        err = MPI_Allgatherv(&curr_yvel, curr_id.size(), MPI_DOUBLE, RECV_yvel, worker_sizes, displs, MPI_DOUBLE, MPI_COMM_WORLD); 
-        err = MPI_Allgatherv(&curr_id, curr_id.size(), MPI_INT, RECV_id, worker_sizes, displs, MPI_INT, MPI_COMM_WORLD);       
-        
- 
+        err = MPI_Allgatherv(curr_x, boid_count, MPI_DOUBLE, RECV_x, worker_sizes,displs ,MPI_DOUBLE, MPI_COMM_WORLD); 
+        err = MPI_Allgatherv(curr_y, boid_count, MPI_DOUBLE, RECV_y, worker_sizes,displs ,MPI_DOUBLE, MPI_COMM_WORLD); 
+        err = MPI_Allgatherv(curr_xvel, boid_count, MPI_DOUBLE, RECV_xvel, worker_sizes, displs, MPI_DOUBLE, MPI_COMM_WORLD);         
+        err = MPI_Allgatherv(curr_yvel, boid_count, MPI_DOUBLE, RECV_yvel, worker_sizes, displs, MPI_DOUBLE, MPI_COMM_WORLD); 
+        err = MPI_Allgatherv(curr_id, boid_count, MPI_INT, RECV_id, worker_sizes, displs, MPI_INT, MPI_COMM_WORLD);       
         
 
-         
         for (int j = 0; j < NUM_BOIDS; j++){
             
             int id = RECV_id[j];
-            if (rank == 1){
-                printf("recv: %d, i:%d\n", RECV_id[j], j);
-            }
-            
-            
-            //birds.m_boids[id].update(RECV_x[j], RECV_y[j] , RECV_xvel[j] , RECV_yvel[j] , RECV_id[j] ); 
+
+            birds.m_boids[id].update(RECV_x[j], RECV_y[j] , RECV_xvel[j] , RECV_yvel[j] , RECV_id[j] ); 
                  
             }
   
   
-    curr_x.clear();
-    curr_y.clear();
-    curr_xvel.clear();
-    curr_yvel.clear();
-    curr_id.clear();
+    temp_id.clear();
     
     
     time += TIME_STEP;

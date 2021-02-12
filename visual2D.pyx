@@ -22,6 +22,7 @@ def main():
         int NUM_BOIDS = int(float(infoFile.iloc[1][5]))
         int FRAMES = int(float(TIME_LIMIT/TIME_STEP)) 
         int INTERVAL = int(TIME_STEP*1000)
+        int PREDATORS = int(float(infoFile.iloc[1][12]))
         
     
     fig = plt.figure()
@@ -30,7 +31,7 @@ def main():
     colours = []
 
     for i in range(0,NUM_BOIDS):
-        if (i < 8):
+        if (i < PREDATORS):
             colours.append('red')
         else:
             colours.append('black')
@@ -59,7 +60,7 @@ def main():
 
 
     plt.show()
-    anim.save('boid2DMPI.mp4', writer='ffmpeg')  
+    anim.save('boid2D.mp4', writer='ffmpeg')  
     
     return 0
     
