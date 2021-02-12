@@ -393,7 +393,7 @@ int main(int argc, char *argv[]) {
     //    wtime = MPI_Wtime() - wtime;
     //    printf("Birds create: %8.6f s\n",wtime); 
     
-    // MASTER rank generates birds in the flock with random positions
+    // generate birds in the flock with random positions
 
     birds.generate(NUM_BOIDS);
     
@@ -424,11 +424,14 @@ int main(int argc, char *argv[]) {
         data << '\n';
     }
     
-   
+    if (rank == MASTER){
+            wtime = MPI_Wtime() - wtime;
+            printf("before advancement: %f\n", wtime);
+        }
     // Advance the birds   
     double time = 0;            
 
-    while (time < TIME_LIMIT) {
+    while (time < 0.009) {
         
         int boid_count;
 
@@ -477,14 +480,17 @@ int main(int argc, char *argv[]) {
         }
                 
         boid_count = temp_id.size();
-        
+        if (rank == MASTER){
+            wtime = MPI_Wtime() - wtime;
+            printf("allocation: %f\n", wtime);
+        }
         double *curr_x = (double *)calloc(boid_count,sizeof(double));
         double *curr_y = (double *)calloc(boid_count,sizeof(double));
         double *curr_xvel = (double *)calloc(boid_count,sizeof(double));
         double *curr_yvel = (double *)calloc(boid_count,sizeof(double));
         int *curr_id = (int *)calloc(boid_count,sizeof(int));
             
-
+        // ADVANCE BOIDS BY ONE TIMESTEP
         for (int i = 0; i < boid_count; i ++) {
                 birds.advance(birds.m_boids[temp_id[i]], OPTION);
                 curr_x[i] = birds.m_boids[temp_id[i]].getX();
@@ -493,17 +499,13 @@ int main(int argc, char *argv[]) {
                 curr_yvel[i] = birds.m_boids[temp_id[i]].getYvel();
                 curr_id[i] = birds.m_boids[temp_id[i]].getid();
         }
+        if (rank == MASTER){
+            wtime = MPI_Wtime() - wtime;
+            printf("advanced: %f\n", wtime);
+        }
         
         
 
-        
-        // MASTER NOW GATHERS UPDATED VALUES
-
-        
-
-        //err = MPI_Barrier(MPI_COMM_WORLD);
-        
-        
         // ALLGATHER WORKER SIZES AND DISPLACEMENTS
         
         
@@ -526,7 +528,10 @@ int main(int argc, char *argv[]) {
         err = MPI_Allgatherv(curr_xvel, boid_count, MPI_DOUBLE, RECV_xvel, worker_sizes, displs, MPI_DOUBLE, MPI_COMM_WORLD);         
         err = MPI_Allgatherv(curr_yvel, boid_count, MPI_DOUBLE, RECV_yvel, worker_sizes, displs, MPI_DOUBLE, MPI_COMM_WORLD); 
         err = MPI_Allgatherv(curr_id, boid_count, MPI_INT, RECV_id, worker_sizes, displs, MPI_INT, MPI_COMM_WORLD);       
-        
+        if (rank == MASTER){
+            wtime = MPI_Wtime() - wtime;
+            printf("all gather: %f\n", wtime);
+        }
 
         for (int j = 0; j < NUM_BOIDS; j++){
             
@@ -535,6 +540,11 @@ int main(int argc, char *argv[]) {
             birds.m_boids[id].update(RECV_x[j], RECV_y[j] , RECV_xvel[j] , RECV_yvel[j] , RECV_id[j] ); 
                  
             }
+            
+        if (rank == MASTER){
+            wtime = MPI_Wtime() - wtime;
+            printf("updated: %f\n", wtime);
+        }
   
   
     temp_id.clear();
@@ -547,9 +557,9 @@ int main(int argc, char *argv[]) {
     
     data.close();
     
-    wtime = MPI_Wtime() - wtime;       
+    double total_time = MPI_Wtime() - wtime;       
     if (rank == MASTER) {
-        printf("Total Elapsed-C++: %8.6f s\n",wtime); 
+        printf("Total Elapsed-C++: %8.6f s\n",total_time); 
     }
     
     MPI_Finalize();
