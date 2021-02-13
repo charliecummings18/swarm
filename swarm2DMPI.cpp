@@ -64,7 +64,7 @@ private:
 public:
     
     std::vector<Boid> m_boids; 
-    std::vector<Boid> neighbour(Boid& boid, const double visibility, int boid_count);
+    std::vector<Boid> neighbour(Boid& boid, const double visibility, int boid_count, int RANK, int SIZE, int CHUNKSIZE);
     std::vector<Boid> m_curr_boids;
     
     void flockSize (int numBoids){
@@ -100,12 +100,17 @@ public:
 // This aligns a boids velocity with the average velocity of its neighbours
 // Neighbours are in the range ALIGN_VISIBILITY and the rule has strength ALIGN_FORCE
 
-    std::tuple<double,double> align(Boid& boid, int boid_count){
+    std::tuple<double,double> align(Boid& boid, int boid_count, int RANK, int SIZE, int CHUNKSIZE){
         double tot_Xvel = 0,  tot_Yvel = 0, steering_Xvel = 0, 
               steering_Yvel = 0, desiredXvel = 0, desiredYvel = 0;
 
 
-        std::vector<Boid> localBoids = neighbour(boid, ALIGN_VISIBILITY, boid_count);
+        std::vector<Boid> localBoids = neighbour(boid, 
+                                                 ALIGN_VISIBILITY, 
+                                                 boid_count,
+                                                 RANK,
+                                                 SIZE,
+                                                 CHUNKSIZE);
         
         if (boid.getid() >= PREDATORS)
         {
@@ -143,12 +148,17 @@ public:
 // This changes a boids velocity towards the average position of its neighbours
 // Neighbours are in the range COHESION_VISIBILITY and the rule has strength COHESION_FORCE
 
-    std::tuple<double,double> cohesion(Boid& boid, int boid_count){
+    std::tuple<double,double> cohesion(Boid& boid, int boid_count, int RANK, int SIZE, int CHUNKSIZE){
         double tot_X = 0,  tot_Y = 0, steering_X = 0, 
               steering_Y = 0, desiredX = 0, desiredY = 0;
 
 
-        std::vector<Boid> localBoids = neighbour(boid, COHESION_VISIBILITY, boid_count);
+        std::vector<Boid> localBoids = neighbour(boid, 
+                                                 COHESION_VISIBILITY, 
+                                                 boid_count,
+                                                 RANK,
+                                                 SIZE,
+                                                 CHUNKSIZE);
         for (int i = 0; i < boid_count; i++) {
             
             int curr_id = m_curr_boids[i].getid();
@@ -183,12 +193,17 @@ public:
 // from boids when they are in the radius SEPERATION_VISIBILITY
 // This rule has strength SEPERATION_FORCE
 
-    std::tuple<double,double> seperation(Boid& boid, int boid_count){
+    std::tuple<double,double> seperation(Boid& boid, int boid_count, int RANK, int SIZE, int CHUNKSIZE){
         double X_sep = 0,  Y_sep = 0, X_repulsion = 0, Y_repulsion = 0;
         double distance;
 
 
-        std::vector<Boid> localBoids = neighbour(boid, SEPERATION_VISIBILITY, boid_count);
+        std::vector<Boid> localBoids = neighbour(boid, 
+                                                 SEPERATION_VISIBILITY, 
+                                                 boid_count,
+                                                 RANK,
+                                                 SIZE,
+                                                 CHUNKSIZE);
         
         if (boid.getid() >= PREDATORS){
             for (int i = 0; i < boid_count; i++) {
@@ -225,12 +240,17 @@ public:
 // The predator rule is very similar to the seperation rule but the force does not scale with distance and comes into 
 // action when predators are in the range PREDATOR VISIBILITY and has the force PREDATOR FORCE.
 
-    std::tuple<double,double> predator(Boid& boid, int boid_count){
+    std::tuple<double,double> predator(Boid& boid, int boid_count, int RANK, int SIZE, int CHUNKSIZE){
         double X_pred = 0,  Y_pred = 0, X_repulse = 0, Y_repulse = 0;
         double distance;
 
 
-        std::vector<Boid> localBoids = neighbour(boid, PREDATOR_VISIBILITY, boid_count);
+        std::vector<Boid> localBoids = neighbour(boid, 
+                                                 PREDATOR_VISIBILITY, 
+                                                 boid_count,
+                                                 RANK,
+                                                 SIZE,
+                                                 CHUNKSIZE);
         
         if (boid.getid() >= PREDATORS) {
             for (int i = 0; i < boid_count; i++) {
@@ -272,7 +292,7 @@ public:
 // Option 1: Boids reappear on the other side of the screen. This changes their positions so that the boids wrap around the screen.
     
     
-    void advance(Boid& boid, int boid_count) {
+    void advance(Boid& boid, int boid_count, int RANK, int SIZE, int CHUNKSIZE) {
         
 
 
@@ -282,10 +302,26 @@ public:
         double Yvel = 0;     
         double magnitude = 0;  
         
-        std::tuple<double,double> alignVel = align(boid, boid_count);
-        std::tuple<double,double> cohVel = cohesion(boid, boid_count);
-        std::tuple<double,double> sepVel = seperation(boid, boid_count); 
-        std::tuple<double,double> predVel = predator(boid, boid_count);        
+        std::tuple<double,double> alignVel = align(boid, 
+                                                   boid_count, 
+                                                   RANK, 
+                                                   SIZE, 
+                                                   CHUNKSIZE);
+        std::tuple<double,double> cohVel = cohesion(boid, 
+                                                    boid_count, 
+                                                    RANK, 
+                                                    SIZE, 
+                                                    CHUNKSIZE);
+        std::tuple<double,double> sepVel = seperation(boid, 
+                                                      boid_count, 
+                                                      RANK, 
+                                                      SIZE, 
+                                                      CHUNKSIZE); 
+        std::tuple<double,double> predVel = predator(boid, 
+                                                     boid_count, 
+                                                     RANK, 
+                                                     SIZE, 
+                                                     CHUNKSIZE);        
         
         Xvel = boid.getXvel() + std::get<0>(alignVel) + std::get<0>(cohVel) + std::get<0>(sepVel) + std::get<0>(predVel);
         Yvel = boid.getYvel() + std::get<1>(alignVel) + std::get<1>(cohVel) + std::get<1>(sepVel) + std::get<1>(predVel);      
@@ -336,32 +372,129 @@ public:
         
 
        
-    }      
+    }
+    
+    
+    std::tuple<double,double, double, double, int> communicate(Boid& boid, const double visibility, int RANK, int SIZE, int CHUNKSIZE){
+        int err;
+        int sent_right_count = 0;
+        int rec_left_count = 0;  
+        MPI_Status Status;
+        
+
+        
+        double sent_right_neighbour[4];
+        int sent_right_neighbour_id;        
+        
+        double rec_left_neighbour[4];
+        int rec_left_neighbour_id;          
+        
+    
+        if ( RANK != SIZE-1 && (-WIDTH + CHUNKSIZE*(RANK+1)) - boid.getX() < visibility){      
+            sent_right_count = 1;
+        }
+
+   
+
+        if ( RANK != SIZE-1){
+        err = MPI_Send(&sent_right_count, 1, MPI_INT, RANK+1, RANK+1, MPI_COMM_WORLD);
+        }     
+        if (RANK != MASTER){
+        err = MPI_Recv(&rec_left_count, 1, MPI_INT, RANK-1, RANK+1, MPI_COMM_WORLD,&Status);
+        }
+        
+        
+        
+        if (sent_right_count == 1) {
+            
+            sent_right_neighbour[0] = boid.getX();
+            sent_right_neighbour[1] = boid.getY();
+            sent_right_neighbour[2] = boid.getXvel();
+            sent_right_neighbour[3] = boid.getYvel();
+            sent_right_neighbour_id = boid.getid();
+            
+            err = MPI_Send(&sent_right_neighbour, 4, MPI_DOUBLE, RANK+1, RANK+2, MPI_COMM_WORLD);
+            err = MPI_Send(&sent_right_neighbour_id, 1, MPI_INT, RANK+1, RANK+3, MPI_COMM_WORLD); 
+        }
+   
+        
+        if (rec_left_count == 1){
+                err = MPI_Recv(&rec_left_neighbour, 4, MPI_DOUBLE, RANK-1, RANK+2, MPI_COMM_WORLD, &Status);
+                err = MPI_Recv(&rec_left_neighbour_id, 1, MPI_INT, RANK-1, RANK+3, MPI_COMM_WORLD, &Status);
+        }
+        else if (rec_left_count == 0){
+                rec_left_neighbour[0] = 0;
+                rec_left_neighbour[1] = 0;
+                rec_left_neighbour[2] = 0;
+                rec_left_neighbour[3] = 0;
+                rec_left_neighbour_id = 0;
+        }
+        
+        
+        
+        return std::make_tuple(rec_left_neighbour[0],                 
+                               rec_left_neighbour[1],
+                               rec_left_neighbour[2],
+                               rec_left_neighbour[3],
+                               rec_left_neighbour_id);
+  
+        }
+        
+
 };
 
 // NEIGHBOUR
 // The neighbour function generates a list of boids which are within a specified radius of the boid in question
 
-std::vector<Boid> Flock :: neighbour(Boid& boid, const double visibility, int boid_count) {
-    
+std::vector<Boid> Flock :: neighbour(Boid& boid, const double visibility, int boid_count, int RANK, int SIZE, int CHUNKSIZE) {
 
     std::vector<Boid> Neighbours;
     
+    double Xdist;
+    double Ydist;
+    double distance;
     for (int i =0; i < boid_count; i++) {
         
-        double Xdist = m_curr_boids[i].getX() - boid.getX();
-        double Ydist = m_curr_boids[i].getY() - boid.getY();      
+        Xdist = m_curr_boids[i].getX() - boid.getX();
+        Ydist = m_curr_boids[i].getY() - boid.getY();      
         
-        double distance = sqrt( pow(Xdist, 2.0) + pow(Ydist, 2.0 ));
+        distance = sqrt( pow(Xdist, 2.0) + pow(Ydist, 2.0 ));
         
         if (boid.getid() != m_curr_boids[i].getid() && distance < visibility) {
             Neighbours.push_back( m_curr_boids[i] );
         }
         
+        std::tuple<double,double, double, double, int> comm = communicate(boid, 
+                                                                          visibility, 
+                                                                          RANK, 
+                                                                          SIZE, 
+                                                                          CHUNKSIZE);
+        
+        if (std::get<0>(comm) != 0 && 
+            std::get<1>(comm) != 0 && 
+            std::get<2>(comm) != 0 && 
+            std::get<3>(comm) != 0 && 
+            std::get<4>(comm) != 0) {
+        
+        Xdist = std::get<0>(comm) - boid.getX();
+        Ydist = std::get<1>(comm) - boid.getY();   
+        
+        distance = sqrt( pow(Xdist, 2.0) + pow(Ydist, 2.0 ));
+        
+            if (distance < visibility) {
+                Neighbours.push_back( Boid(std::get<0>(comm),
+                                           std::get<1>(comm),
+                                           std::get<2>(comm),
+                                           std::get<3>(comm),
+                                           std::get<4>(comm)));
+            }
+        }
     }
     
     return Neighbours;
 }
+
+
 
     
 
@@ -376,7 +509,7 @@ int main(int argc, char *argv[]) {
     
 
     int k, size, rank, err, X, Y, Xvel, Yvel;
-    double wtime, CHUNKSIZE;   
+    double wtime, chunksize;   
     
     err = MPI_Init ( NULL, NULL );
     err = MPI_Comm_size ( MPI_COMM_WORLD, &size );
@@ -384,7 +517,7 @@ int main(int argc, char *argv[]) {
     
     wtime = MPI_Wtime();
     
-    CHUNKSIZE = (2*WIDTH)/(double(size));
+    chunksize = (2*WIDTH)/(double(size));
     
     // Initialise data file
     std::string fileName;
@@ -433,7 +566,7 @@ int main(int argc, char *argv[]) {
     // Advance the birds   
     double time = 0;            
 
-    while (time < TIME_LIMIT) {
+    while (time < 0.009) {
         
         int boid_count;
         double *curr_x = (double *)malloc(NUM_BOIDS*sizeof(double));
@@ -442,15 +575,23 @@ int main(int argc, char *argv[]) {
         double *curr_yvel = (double *)malloc(NUM_BOIDS*sizeof(double));
         int *curr_id = (int *)malloc(NUM_BOIDS*sizeof(int));
         
-        double *RECV_x = (double *)malloc(NUM_BOIDS*sizeof(double));
-        double *RECV_y = (double *)malloc(NUM_BOIDS*sizeof(double));
-        double *RECV_xvel = (double *)malloc(NUM_BOIDS*sizeof(double));
-        double *RECV_yvel = (double *)malloc(NUM_BOIDS*sizeof(double));
-        int    *RECV_id = (int *)malloc(NUM_BOIDS*sizeof(int));
+        double *MASTERcurr_x = (double *)malloc(NUM_BOIDS*sizeof(double));
+        double *MASTERcurr_y = (double *)malloc(NUM_BOIDS*sizeof(double));
+        double *MASTERcurr_xvel = (double *)malloc(NUM_BOIDS*sizeof(double));
+        double *MASTERcurr_yvel = (double *)malloc(NUM_BOIDS*sizeof(double));
+        int *MASTERcurr_id = (int *)malloc(NUM_BOIDS*sizeof(int));
         
         
-        int *worker_sizes = (int *)malloc(size*sizeof(int));
-        int *displs = (int *)malloc(size*sizeof(int));
+        
+        double *RECV_x;
+        double *RECV_y;
+        double *RECV_xvel;
+        double *RECV_yvel;
+        int    *RECV_id;
+        
+        
+        int *worker_sizes = (int *)malloc((size)*sizeof(int));
+        int *displs = (int *)malloc((size)*sizeof(int));
         
         MPI_Request Request;            
         MPI_Status Status;
@@ -467,8 +608,9 @@ int main(int argc, char *argv[]) {
 
        
             int assigned_rank = 0;
-
+            worker_sizes[0]=0;
             displs[0]=0;
+            displs[1]=0;
             
             int x_chunk = -WIDTH;
         
@@ -478,17 +620,17 @@ int main(int argc, char *argv[]) {
                 int index = 0;
                 for (k = 0; k < NUM_BOIDS; k++) {
                 
-                    if (assigned_rank == MASTER && birds.m_boids[k].getX() < (-WIDTH + CHUNKSIZE*(assigned_rank+1)) ) { 
-                        curr_x[index] = birds.m_boids[k].getX();
-                        curr_y[index] = birds.m_boids[k].getY();
-                        curr_xvel[index] = birds.m_boids[k].getXvel();
-                        curr_yvel[index] = birds.m_boids[k].getYvel();
-                        curr_id[index] = birds.m_boids[k].getid();
+                    if (assigned_rank == MASTER && birds.m_boids[k].getX() < (-WIDTH + chunksize*(assigned_rank+1)) ) { 
+                        MASTERcurr_x[index] = birds.m_boids[k].getX();
+                        MASTERcurr_y[index] = birds.m_boids[k].getY();
+                        MASTERcurr_xvel[index] = birds.m_boids[k].getXvel();
+                        MASTERcurr_yvel[index] = birds.m_boids[k].getYvel();
+                        MASTERcurr_id[index] = birds.m_boids[k].getid();
                         index +=1;
                         
                     }
                 
-                    else if (assigned_rank == (size-1) && birds.m_boids[k].getX() > (-WIDTH + CHUNKSIZE*assigned_rank) ) {
+                    else if (assigned_rank == (size-1) && birds.m_boids[k].getX() > (-WIDTH + chunksize*assigned_rank) ) {
                         curr_x[index] = birds.m_boids[k].getX();
                         curr_y[index] = birds.m_boids[k].getY();
                         curr_xvel[index] = birds.m_boids[k].getXvel();
@@ -497,7 +639,7 @@ int main(int argc, char *argv[]) {
                         index +=1;
                     }
                 
-                    else if (birds.m_boids[k].getX() < (-WIDTH + CHUNKSIZE*(assigned_rank+1)) && birds.m_boids[k].getX() > (-WIDTH + CHUNKSIZE*assigned_rank) ) {
+                    else if (birds.m_boids[k].getX() < (-WIDTH + chunksize*(assigned_rank+1)) && birds.m_boids[k].getX() > (-WIDTH + chunksize*assigned_rank) ) {
                         curr_x[index] = birds.m_boids[k].getX();
                         curr_y[index] = birds.m_boids[k].getY();
                         curr_xvel[index] = birds.m_boids[k].getXvel();
@@ -508,12 +650,15 @@ int main(int argc, char *argv[]) {
                 }
 
                 
-  
-                worker_sizes[assigned_rank] = index;
-                displs[assigned_rank+1] = index + displs[assigned_rank];
-                
+   
+
+
                 if (assigned_rank != MASTER)
                 {
+                    worker_sizes[assigned_rank] = index;
+
+                    displs[assigned_rank+1] = index + displs[assigned_rank];
+  
         
                     err = MPI_Send(&index, 1, MPI_INT, assigned_rank, assigned_rank, MPI_COMM_WORLD);
                     
@@ -522,29 +667,37 @@ int main(int argc, char *argv[]) {
                     err = MPI_Send(curr_xvel, index, MPI_DOUBLE, assigned_rank, assigned_rank, MPI_COMM_WORLD);                    
                     err = MPI_Send(curr_yvel, index, MPI_DOUBLE, assigned_rank, assigned_rank, MPI_COMM_WORLD);                    
                     err = MPI_Send(curr_id, index, MPI_INT, assigned_rank, assigned_rank, MPI_COMM_WORLD);                    
-
+ 
                 }
    
                 else if (assigned_rank == MASTER)
                 {
+                    
                     boid_count = index;
                     birds.m_curr_boids.clear();
 
                     for (int i = 0; i < boid_count; i++){
-                        birds.curr_boids(curr_x[i], curr_y[i], curr_xvel[i], curr_yvel[i], curr_id[i]);
+                        birds.curr_boids(MASTERcurr_x[i], MASTERcurr_y[i], MASTERcurr_xvel[i], MASTERcurr_yvel[i], MASTERcurr_id[i]);
                         }
                     for (int i = 0; i < boid_count; i++) {
-                        birds.advance(birds.m_curr_boids[i], boid_count); 
-                        curr_x[i] = birds.m_curr_boids[i].getX();
-                        curr_y[i] = birds.m_curr_boids[i].getY();
-                        curr_xvel[i] = birds.m_curr_boids[i].getXvel();
-                        curr_yvel[i] = birds.m_curr_boids[i].getYvel();
-                        curr_id[i] = birds.m_curr_boids[i].getid();
+                        birds.advance(birds.m_curr_boids[i], boid_count, rank, size, chunksize); 
+                        MASTERcurr_x[i] = birds.m_curr_boids[i].getX();
+                        MASTERcurr_y[i] = birds.m_curr_boids[i].getY();
+                        MASTERcurr_xvel[i] = birds.m_curr_boids[i].getXvel();
+                        MASTERcurr_yvel[i] = birds.m_curr_boids[i].getYvel();
+                        MASTERcurr_id[i] = birds.m_curr_boids[i].getid();
+ 
                     }
+                    RECV_x = (double *)malloc((NUM_BOIDS-boid_count)*sizeof(double));
+                    RECV_y = (double *)malloc((NUM_BOIDS-boid_count)*sizeof(double));
+                    RECV_xvel = (double *)malloc((NUM_BOIDS-boid_count)*sizeof(double));
+                    RECV_yvel = (double *)malloc((NUM_BOIDS-boid_count)*sizeof(double));
+                    RECV_id = (int *)malloc((NUM_BOIDS-boid_count)*sizeof(int));
+                   
                 }
   
                 assigned_rank+=1;
-                x_chunk+=CHUNKSIZE;
+                x_chunk+=chunksize;
                 
             } 
         }
@@ -570,38 +723,43 @@ int main(int argc, char *argv[]) {
             
 
             for (int j = 0; j < boid_count; j ++) {
-                birds.advance(birds.m_curr_boids[j], boid_count);
+                birds.advance(birds.m_curr_boids[j], boid_count, rank, size, chunksize);
                 curr_x[j] = birds.m_curr_boids[j].getX();
                 curr_y[j] = birds.m_curr_boids[j].getY();
                 curr_xvel[j] = birds.m_curr_boids[j].getXvel();
                 curr_yvel[j] = birds.m_curr_boids[j].getYvel();
                 curr_id[j] = birds.m_curr_boids[j].getid();
-            }   
+            }
+            
         }
-          
-        // ALLGATHER WORKER SIZES AND DISPLACEMENTS
 
-        
         err = MPI_Gatherv(curr_x, boid_count, MPI_DOUBLE, RECV_x, worker_sizes, displs, MPI_DOUBLE, MASTER, MPI_COMM_WORLD);
         err = MPI_Gatherv(curr_y, boid_count, MPI_DOUBLE, RECV_y, worker_sizes, displs, MPI_DOUBLE, MASTER, MPI_COMM_WORLD);       
         err = MPI_Gatherv(curr_xvel, boid_count, MPI_DOUBLE, RECV_xvel, worker_sizes, displs, MPI_DOUBLE, MASTER, MPI_COMM_WORLD);        
         err = MPI_Gatherv(curr_yvel, boid_count, MPI_DOUBLE, RECV_yvel, worker_sizes, displs, MPI_DOUBLE, MASTER, MPI_COMM_WORLD); 
-
-
         err = MPI_Gatherv(curr_id, boid_count, MPI_INT, RECV_id, worker_sizes, displs, MPI_INT, MASTER, MPI_COMM_WORLD);        
-
+   
         if (rank == MASTER){
             for (int j = 0; j < NUM_BOIDS; j++){
             
-                int id = RECV_id[j];
-
-                birds.m_boids[id].update(RECV_x[j], RECV_y[j] , RECV_xvel[j] , RECV_yvel[j] , RECV_id[j] ); 
-                 
+                int id;                
+                int k = NUM_BOIDS-boid_count;
+                
+                if (j < k){
+                    id = RECV_id[j];
+                    birds.m_boids[id].update(RECV_x[j], RECV_y[j] , RECV_xvel[j] , RECV_yvel[j] , RECV_id[j] ); 
+                }
+ 
+                else if(j >= NUM_BOIDS-boid_count) {
+                    id = MASTERcurr_id[j-k];
+                    birds.m_boids[id].update(MASTERcurr_x[j-k], MASTERcurr_y[j-k] , MASTERcurr_xvel[j-k] , MASTERcurr_yvel[j-k] , MASTERcurr_id[j-k] );  
+                }
             }
-        }
-            
 
-  
+        }
+   
+
+        
     time += TIME_STEP;
     }
 
