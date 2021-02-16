@@ -8,11 +8,11 @@ const double DEPTH = 180.0;
 
 const double MAX_SPEED = 100.0;
 
-const double TIME_LIMIT = 0.009;   //2.04
+const double TIME_LIMIT = 10;   //2.04
 const double TIME_STEP = 0.01;
 
 
-const int NUM_BOIDS = 20;
+const int NUM_BOIDS = 200;
 const double ALIGN_VISIBILITY = 40.0;
 const double COHESION_VISIBILITY = 80.0;
 const double SEPERATION_VISIBILITY = 40.0;
