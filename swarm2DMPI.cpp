@@ -17,21 +17,12 @@
 
 int main(int argc, char *argv[]) {
 
-    /*
-    if (argc < 2) {
-        printf("Usage: \n ./swarm2D [number of processes]\n");
-        return 1;
-    }
-    */
-    
-
-    int k, size, rank, err, X, Y, Xvel, Yvel;
+    int k, size, rank, err;
     double wtime, chunksize;   
     
-    err = MPI_Init ( NULL, NULL );
+    err = MPI_Init ( &argc, &argv );
     err = MPI_Comm_size ( MPI_COMM_WORLD, &size );
     err = MPI_Comm_rank ( MPI_COMM_WORLD, &rank );
-    int RANK = rank;
     wtime = MPI_Wtime();
     
     chunksize = (2*WIDTH)/(double(size));
@@ -40,24 +31,19 @@ int main(int argc, char *argv[]) {
     std::string fileName;
     fileName = "boid_data2D.csv";
     std::ofstream data(fileName); 
-    // Initialise file with generic info e.g. constants
+    // Initialise file with generic info e.g. constants, forces
     std::ofstream infoFile("infoFile2D.csv");
     
     // Create flock (in this case birds)
     Flock birds{};
     birds.flockSize(NUM_BOIDS);
-    //    wtime = MPI_Wtime() - wtime;
-    //    printf("Birds create: %8.6f s\n",wtime); 
     
-    // generate birds in the flock with random positions
+    // MASTER generates birds in the flock with random positions
     if (rank == MASTER){  
         birds.generate(NUM_BOIDS);
-    
-   
-    
-    
- 
-    // Write infoFile.csv file
+
+    // Write infoFile.csv file, this contains all relevant data which visual_2D.pyx needs
+    // to read
         infoFile << "HEIGHT, WIDTH, MAX_SPEED, TIME_LIMIT, TIME_STEP, NUM_BOIDS, ALIGN_VISIBILITY, \
                     COHESION_VISIBILITY, SEPERATION_VISIBILITY, ALIGN_FORCE,  COHESION_FORCE, SEPERATION_FORCE, PREDATORS\n";
     
@@ -79,8 +65,7 @@ int main(int argc, char *argv[]) {
         }
         data << '\n';
     }
-    
-    // Advance the birds   
+      
     double time = 0;            
 
     while (time < TIME_LIMIT) {
@@ -114,7 +99,9 @@ int main(int argc, char *argv[]) {
         MPI_Request Request;            
         MPI_Status Status;
        
-/////////////////// MASTER PROCESS /////////////////////////
+/////////////////// MASTER PROCESS ///////////////////
+//  MASTER distributes slice of program (based on x position) to each worker
+//  MASTER takes the first slice of boids and adds these to the curr_boids list 
         if (rank == MASTER) {
             for (int num = 0; num < NUM_BOIDS; num ++) {
                 data << birds.m_boids[num].getX() << "," 
@@ -189,6 +176,8 @@ int main(int argc, char *argv[]) {
                 
             } 
         }
+        
+//      WORKERS receive boids sent from MASTER and add to their own curr_boids list
         else if (rank != MASTER) {
             
             err = MPI_Recv(&boid_count, 1, MPI_INT, MASTER, rank, MPI_COMM_WORLD, &Status);
@@ -216,13 +205,16 @@ int main(int argc, char *argv[]) {
         }
     
       
-           //  COMMUNICATION //     
+///////////////////  COMMUNICATION ///////////////////
+// If a boid is near the boundary of the neighbouring process, its information is sent to 
+// the neighbour. This boid is then added to the neighbouring processes list of neighbours // so that the boid feels the correct force from its neighbours.
+        
         int left_count = 0;
         int right_count = 0;
         
         if (rank != size-1){
             
-            // SENDING TO RIGHT//
+            // SENDING TO RIGHT NEIGHBOUR PROCESS//
             std::vector<int>temp_send_right_id;
             std::vector<std::vector<double>>temp_send_right;
             
@@ -268,7 +260,7 @@ int main(int argc, char *argv[]) {
         
             
             
-            // RECIEVING FROM RIGHT//
+            // RECIEVING FROM RIGHT NEIGHBOUR PROCESS//
             
 
 
@@ -293,7 +285,7 @@ int main(int argc, char *argv[]) {
         if (rank != MASTER){
             
             
-            // SENDING TO LEFT//
+            // SENDING TO LEFT NEIGHBOUR PROCESS//
             
             std::vector<int>temp_send_left_id;
             std::vector<std::vector<double>>temp_send_left;
@@ -341,7 +333,7 @@ int main(int argc, char *argv[]) {
             
 
             
-            // RECIEVING FROM LEFT//
+            // RECIEVING FROM LEFT NEIGHBOUR PROCESS//
 
             
             
@@ -361,14 +353,19 @@ int main(int argc, char *argv[]) {
             for (int r = 0; r < left_count; r++) {
                 birds.curr_boids(rec_left[0][r],rec_left[1][r],rec_left[2][r],rec_left[3][r],rec_left_id[r]);     
             }
-            
+
         }
         
-        ///////////////////
+ /////////////////// END OF COMMUNICATION ///////////////////       
 
    
     
-        
+/////////////////// ADVANCE THE BOIDS ///////////////////
+// MASTER and WORKERS advance each boid they control by one timestep, according to the 
+// rules given in the FLOCK class.
+// The curr arrays (which hold current boid data) are then updated, ready to be
+// transferred back to MASTER
+
         if (rank != MASTER){         
             for (int j = 0; j < boid_count; j ++) {
                 birds.advance(birds.m_curr_boids[j]);
@@ -389,12 +386,18 @@ int main(int argc, char *argv[]) {
                     MASTERcurr_yvel[j] = birds.m_curr_boids[j].getYvel();
                     MASTERcurr_id[j] = birds.m_curr_boids[j].getid();
             }
+            
+            
             RECV_x = (double *)malloc((NUM_BOIDS-boid_count)*sizeof(double));
             RECV_y = (double *)malloc((NUM_BOIDS-boid_count)*sizeof(double));
             RECV_xvel = (double *)malloc((NUM_BOIDS-boid_count)*sizeof(double));
             RECV_yvel = (double *)malloc((NUM_BOIDS-boid_count)*sizeof(double));
             RECV_id = (int *)malloc((NUM_BOIDS-boid_count)*sizeof(int));
         }
+        
+/////////////////// GATHER BOIDS ///////////////////
+// MPI_Gather is called to gather all boids from each process back to MASTER, which then 
+// updates the main list of boids (m_boids)
 
         err = MPI_Gatherv(curr_x, boid_count, MPI_DOUBLE, RECV_x, worker_sizes, displs, MPI_DOUBLE, MASTER, MPI_COMM_WORLD);
         err = MPI_Gatherv(curr_y, boid_count, MPI_DOUBLE, RECV_y, worker_sizes, displs, MPI_DOUBLE, MASTER, MPI_COMM_WORLD);       
@@ -420,15 +423,10 @@ int main(int argc, char *argv[]) {
             }
 
         }
-   
 
-
-    
     time += TIME_STEP;
     }
-
-
-
+    // Close file
     data.close();
     
     double total_time = MPI_Wtime() - wtime;       

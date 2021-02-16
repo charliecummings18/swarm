@@ -167,7 +167,28 @@ std::tuple<double,double> Flock :: predator(Boid& boid){
 }
     
 
+std::vector<Boid> Flock :: neighbour(Boid& boid, const double visibility) {
+
+    std::vector<Boid> Neighbours;
     
+    double Xdist;
+    double Ydist;
+    double distance;
+
+
+    for (int i = 0; i < (m_curr_boids.size()); i++) {
+        
+        Xdist = m_curr_boids[i].getX() - boid.getX();
+        Ydist = m_curr_boids[i].getY() - boid.getY();      
+        
+        distance = sqrt( pow(Xdist, 2.0) + pow(Ydist, 2.0 ));
+        
+        if (boid.getid() != m_curr_boids[i].getid() && distance < visibility) {
+            Neighbours.push_back( m_curr_boids[i] );
+        }   
+    }
+    return Neighbours;
+}    
     
 void Flock :: advance(Boid& boid) {
         
@@ -222,36 +243,6 @@ void Flock :: advance(Boid& boid) {
             Y = -Y;
         }         
     }
-
-            
-
-            
+  
     boid.update(X, Y, Xvel, Yvel, boid.getid());
-        
-
-       
-}
-
-
-std::vector<Boid> Flock :: neighbour(Boid& boid, const double visibility) {
-
-    std::vector<Boid> Neighbours;
-    
-    double Xdist;
-    double Ydist;
-    double distance;
-
-
-    for (int i = 0; i < (m_curr_boids.size()); i++) {
-        
-        Xdist = m_curr_boids[i].getX() - boid.getX();
-        Ydist = m_curr_boids[i].getY() - boid.getY();      
-        
-        distance = sqrt( pow(Xdist, 2.0) + pow(Ydist, 2.0 ));
-        
-        if (boid.getid() != m_curr_boids[i].getid() && distance < visibility) {
-            Neighbours.push_back( m_curr_boids[i] );
-        }   
-    }
-    return Neighbours;
 }

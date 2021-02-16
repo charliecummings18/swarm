@@ -13,7 +13,7 @@ private:
 public:
     
     std::vector<Boid> m_boids; 
-    std::vector<Boid> neighbour(Boid& boid, const double visibility);
+
     std::vector<Boid> m_curr_boids;
     
     void flockSize (int numBoids);
@@ -54,6 +54,13 @@ public:
 
     std::tuple<double,double> predator(Boid& boid);
     
+    
+// NEIGHBOUR
+// The neighbour function generates a list of boids which are within a specified radius of
+// the boid in question
+    
+    std::vector<Boid> neighbour(Boid& boid, const double visibility);
+    
 
 // ADVANCE
 // This function advances the boids one timestep every time it is called.
@@ -65,6 +72,7 @@ public:
 // Option 1: Boids reappear on the other side of the screen. This changes their positions so that the boids wrap around the screen.
     
     void advance(Boid& boid); 
+    
 
 };
 
