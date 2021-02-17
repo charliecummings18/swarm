@@ -11,22 +11,30 @@ class Boid {
         
     double m_X{};
     double m_Y{};
-        
+    double m_Z{};
+    
+    
     double m_Xvel{};
     double m_Yvel{};
+    double m_Zvel{};   
     
     int m_id{};
     
 public:    
     
-    Boid(double x, double y, double xVel, double yVel, int id);
-    void update(double x, double y, double xVel, double yVel, int id); 
+    Boid(double x, double y, double xVel, double yVel, int id, double z = 0, double zVel = 0);
+    
+    void update(double x, double y, double xVel, double yVel, int id, double z = 0, double zVel = 0); 
+    
     double getX();  
     double getY();   
     double getXvel();  
     double getYvel();  
     int getid(); 
-    
+
+    double getZ();
+    double getZvel();
+
 };
 
 #endif

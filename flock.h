@@ -18,9 +18,9 @@ public:
     
     void flockSize (int numBoids);
     
-    void generate(int numBoids); 
+    void generate(int numBoids, std::string method); 
     
-    void curr_boids(double X, double Y, double Xvel, double Yvel, int id);
+    void curr_boids(double X, double Y, double Xvel, double Yvel, int id, double Z = 0, double Zvel = 0);
     
     
      
@@ -30,20 +30,20 @@ public:
 // This aligns a boids velocity with the average velocity of its neighbours
 // Neighbours are in the range ALIGN_VISIBILITY and the rule has strength ALIGN_FORCE
 
-    std::tuple<double,double> align(Boid& boid);
+    std::tuple<double,double,double> align(Boid& boid);
     
 // COHESION 
 // This changes a boids velocity towards the average position of its neighbours
 // Neighbours are in the range COHESION_VISIBILITY and the rule has strength COHESION_FORCE
 
-    std::tuple<double,double> cohesion(Boid& boid);
+    std::tuple<double,double,double> cohesion(Boid& boid);
 
 // SEPERATION   
 // This ensures boids do not become too close to eachother and will begin to seperate 
 // from boids when they are in the radius SEPERATION_VISIBILITY
 // This rule has strength SEPERATION_FORCE
 
-    std::tuple<double,double> seperation(Boid& boid);
+    std::tuple<double,double,double> seperation(Boid& boid);
     
 // PREDATOR
 // Predators are boids which hunt down the normal boids. They only follow the cohesion rule, to align their position 
@@ -52,7 +52,7 @@ public:
 // The predator rule is very similar to the seperation rule but the force does not scale with distance and comes into 
 // action when predators are in the range PREDATOR VISIBILITY and has the force PREDATOR FORCE.
 
-    std::tuple<double,double> predator(Boid& boid);
+    std::tuple<double,double,double> predator(Boid& boid);
     
     
 // NEIGHBOUR
