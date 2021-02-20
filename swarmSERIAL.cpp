@@ -1,10 +1,8 @@
 #include <iostream>
 #include <stdlib.h> 
 #include <stdio.h>
-#include <ctime>
 #include <vector>
 #include <functional>
-#include <omp.h>
 #include <tuple>
 #include <cmath>
 #include <fstream>
@@ -12,21 +10,13 @@
 #include "parameters.h"
 #include "boid.cpp"
 #include "flock.cpp"
+#include <chrono>
 
 int main(int argc, char *argv[]) {
 
-    if (argc < 2) {
-        printf("Usage: \n ./swarmOMP./ [number of threads]\n");
-        return 1;
-    }
-    
-    
-    int threads = atoi(argv[1]);
-    omp_set_num_threads( threads );
-    int k;
-    double initial, final, t1, t2, t3;   
-    
-    initial = omp_get_wtime();
+
+    int k;  
+    auto initial = std::chrono::high_resolution_clock::now();
     
     
     // Initialise data file
@@ -52,7 +42,7 @@ int main(int argc, char *argv[]) {
     birds.flockSize(NUM_BOIDS);
     
     // Generate birds in the flock with random positions 
-    birds.generate(NUM_BOIDS,"OMP");
+    birds.generate(NUM_BOIDS,"SERIAL");
 
  
      
@@ -75,55 +65,53 @@ int main(int argc, char *argv[]) {
     
     // Write header columns for boid_data2D.csv file
     
-    if (omp_get_thread_num() == 0) {
-        for (int num = 0; num < NUM_BOIDS; num ++) {
-            if (DIMENSIONS == 2){
-                data << "boid" + std::to_string(num) + ".x, boid" 
-                               + std::to_string(num) + ".y, ";   
-            }
-            else if (DIMENSIONS == 3){
-                data << "boid" + std::to_string(num) + ".x, boid"
-                               + std::to_string(num) + ".y, boid"
-                               + std::to_string(num) + ".z, ";   
-                }                
-            }
-            data << '\n';
+
+    for (int num = 0; num < NUM_BOIDS; num ++) {
+        if (DIMENSIONS == 2){
+            data << "boid" + std::to_string(num) + ".x, boid" 
+                           + std::to_string(num) + ".y, ";   
+        }
+        else if (DIMENSIONS == 3){
+            data << "boid" + std::to_string(num) + ".x, boid"
+                           + std::to_string(num) + ".y, boid"
+                           + std::to_string(num) + ".z, ";   
+        }
     }
+    data << '\n';
+
 
     
     // Advance the birds   
     double time = 0;
     while (time < TIME_LIMIT) {
-        if (omp_get_thread_num() == 0) {
-            for (int num = 0; num < NUM_BOIDS; num ++) {
-                if (DIMENSIONS == 2){
-                data << birds.m_curr_boids[num].getX() <<"," 
-                     << birds.m_curr_boids[num].getY() <<","; 
-                }
-                else if (DIMENSIONS == 3){
-                data << birds.m_curr_boids[num].getX() <<"," 
-                     << birds.m_curr_boids[num].getY() <<","
-                     << birds.m_curr_boids[num].getZ() <<","; 
-                }
+        for (int num = 0; num < NUM_BOIDS; num ++) {
+            if (DIMENSIONS == 2){
+            data << birds.m_curr_boids[num].getX() <<"," 
+                 << birds.m_curr_boids[num].getY() <<","; 
             }
-            data << '\n';
+            else if (DIMENSIONS == 3){
+            data << birds.m_curr_boids[num].getX() <<"," 
+                 << birds.m_curr_boids[num].getY() <<","
+                 << birds.m_curr_boids[num].getZ() <<","; 
+            }
         }
-    #pragma omp parallel private(k)
-    {
-        #pragma omp for
+        data << '\n';
+
+    
+
         for (k = 0; k < NUM_BOIDS; k++) {
             birds.advance(birds.m_curr_boids[k]);
         }
-    }
     time += TIME_STEP;
     }
     
     data.close();
     
     
-    final = omp_get_wtime();
-    printf("Total Elapsed-OMP: %8.6f s\n",final-initial); 
-    
+    auto final = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::seconds>(final - initial); 
+    //printf("Total Elapsed-SERIAL: %8.6f s\n",final-initial); 
+    std::cout<< "Total Elapsed-Serial: " << duration.count() << 's' <<'\n';
     
     
     return 0;
