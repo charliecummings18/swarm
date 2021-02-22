@@ -51,11 +51,10 @@ int main(int argc, char *argv[]) {
     Flock birds{};
     birds.flockSize(NUM_BOIDS);
     
-    // Generate birds in the flock with random positions 
+    // Generate birds in the flock with random positions  
     birds.generate(NUM_BOIDS,"OMP");
-
  
-     
+
     // Write infoFile.csv file, this contains all relevant data which visual_2D/3D.pyx
     // needs to read
 
@@ -120,7 +119,7 @@ int main(int argc, char *argv[]) {
     
     data.close();
     
-    
+
     final = omp_get_wtime();
     printf("Total Elapsed-OMP: %8.6f s\n",final-initial); 
     

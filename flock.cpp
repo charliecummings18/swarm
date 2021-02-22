@@ -1,5 +1,5 @@
 #include "flock.h"
-
+#include "omp.h"
 void Flock :: flockSize (int numBoids){
     m_numBoids = numBoids;
 }
@@ -10,22 +10,36 @@ void Flock :: generate(int numBoids, std::string method) {
     int i;
     unsigned int seed = 88;
     std::srand(seed); 
-
-    for (i = 0; i < numBoids ; i++) {
+    if (method == "OMP"){
+        #pragma omp parallel private(i, X, Y, Xvel, Yvel, Z, Zvel), shared(m_curr_boids)
+        {
+            #pragma omp for
+            for (i = 0; i < numBoids ; i++) {
                 
-        X = static_cast<double>(std::rand())*2*WIDTH/RAND_MAX - WIDTH;
-        Y = static_cast<double>(std::rand())*2*HEIGHT/RAND_MAX - HEIGHT;  
-        Z = static_cast<double>(std::rand())*2*HEIGHT/RAND_MAX - DEPTH; 
-        Xvel = static_cast<double>(std::rand())*2*MAX_SPEED/RAND_MAX - MAX_SPEED; 
-        Yvel = static_cast<double>(std::rand())*2*MAX_SPEED/RAND_MAX - MAX_SPEED;
-        Zvel = static_cast<double>(std::rand())*2*MAX_SPEED/RAND_MAX - MAX_SPEED;    
-        if (method == "MPI"){
-            m_boids.push_back(Boid(X, Y, Xvel, Yvel, i, Z, Zvel));
+                X = static_cast<double>(std::rand())*2*WIDTH/RAND_MAX - WIDTH;
+                Y = static_cast<double>(std::rand())*2*HEIGHT/RAND_MAX - HEIGHT;  
+                Z = static_cast<double>(std::rand())*2*HEIGHT/RAND_MAX - DEPTH; 
+                Xvel = static_cast<double>(std::rand())*2*MAX_SPEED/RAND_MAX - MAX_SPEED; 
+                Yvel = static_cast<double>(std::rand())*2*MAX_SPEED/RAND_MAX - MAX_SPEED;
+                Zvel = static_cast<double>(std::rand())*2*MAX_SPEED/RAND_MAX - MAX_SPEED;
+                #pragma omp critical
+                m_curr_boids.push_back(Boid(X, Y, Xvel, Yvel, i, Z, Zvel));
+            }
         }
-        else if (method == "OMP"){
-            m_curr_boids.push_back(Boid(X, Y, Xvel, Yvel, i, Z, Zvel));
-        } 
     }
+    else if (method == "MPI"){
+        for (i = 0; i < numBoids ; i++) {
+                
+            X = static_cast<double>(std::rand())*2*WIDTH/RAND_MAX - WIDTH;
+            Y = static_cast<double>(std::rand())*2*HEIGHT/RAND_MAX - HEIGHT;  
+            Z = static_cast<double>(std::rand())*2*HEIGHT/RAND_MAX - DEPTH; 
+            Xvel = static_cast<double>(std::rand())*2*MAX_SPEED/RAND_MAX - MAX_SPEED; 
+            Yvel = static_cast<double>(std::rand())*2*MAX_SPEED/RAND_MAX - MAX_SPEED;
+            Zvel = static_cast<double>(std::rand())*2*MAX_SPEED/RAND_MAX - MAX_SPEED;
+                
+            m_boids.push_back(Boid(X, Y, Xvel, Yvel, i, Z, Zvel));
+            }
+        } 
 }
     
 void Flock :: curr_boids(double X, double Y, double Xvel, double Yvel, int id, double Z, double Zvel){
