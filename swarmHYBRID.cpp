@@ -5,6 +5,7 @@
 #include <vector>
 #include <functional>
 #include <mpi.h>
+#include <omp.h>
 #include <tuple>
 #include <cmath>
 #include <fstream>
@@ -16,8 +17,15 @@
 
 int main(int argc, char *argv[]) {
 
+    if (argc < 2) {
+        printf("Usage: \n -np [number of processes] ./swarmMIXED [number of threads]\n");
+        return 1;
+    }
     int k, size, rank, err;
     double wtime, chunksize;   
+    
+    int threads = atoi(argv[1]);
+    omp_set_num_threads( threads );
     
     err = MPI_Init ( &argc, &argv );
     err = MPI_Comm_size ( MPI_COMM_WORLD, &size );
@@ -48,7 +56,7 @@ int main(int argc, char *argv[]) {
     
     // MASTER generates birds in the flock with random positions
     if (rank == MASTER){  
-        birds.generate(NUM_BOIDS,"MPI");
+        birds.generate(NUM_BOIDS,"HYBRID");
 
     // Write infoFile.csv file, this contains all relevant data which visual_2D/3D.pyx
     // needs to read
@@ -499,7 +507,12 @@ int main(int argc, char *argv[]) {
 // The curr arrays (which hold current boid data) are then updated, ready to be
 // transferred back to MASTER
 
-        if (rank != MASTER){         
+        if (rank != MASTER){   
+            int j;
+            #pragma omp parallel private(j), shared (curr_x,curr_y,curr_xvel, curr_yvel,curr_id)
+            {
+            #pragma omp for schedule(static) nowait
+
             for (int j = 0; j < boid_count; j ++) {
                 birds.advance(birds.m_curr_boids[j]);
                 curr_x[j] = birds.m_curr_boids[j].getX();
@@ -511,12 +524,19 @@ int main(int argc, char *argv[]) {
                 if (DIMENSIONS == 3){
                     curr_z[j] = birds.m_curr_boids[j].getZ();
                     curr_zvel[j] = birds.m_curr_boids[j].getZvel();                   
+                    }
                 }
             }
+    
          }
             
-        else if (rank == MASTER){          
-            for (int j = 0; j < boid_count; j ++) {
+        else if (rank == MASTER){   
+            int j;
+            #pragma omp parallel private(j) shared (MASTERcurr_x,MASTERcurr_y,MASTERcurr_xvel, MASTERcurr_yvel,MASTERcurr_id)
+            {
+            #pragma omp for schedule(static) nowait
+                
+            for (j = 0; j < boid_count; j ++) {
                     birds.advance(birds.m_curr_boids[j]); 
                     MASTERcurr_x[j] = birds.m_curr_boids[j].getX();
                     MASTERcurr_y[j] = birds.m_curr_boids[j].getY();
@@ -526,7 +546,9 @@ int main(int argc, char *argv[]) {
                     if (DIMENSIONS == 3){
                         MASTERcurr_z[j] = birds.m_curr_boids[j].getZ();
                         MASTERcurr_zvel[j] = birds.m_curr_boids[j].getZvel();                       
+              
                     }
+                }
             }
             
             
@@ -593,7 +615,7 @@ int main(int argc, char *argv[]) {
     double total_time = MPI_Wtime() - wtime;       
     if (rank == MASTER) {
         printf("Program Complete.\n"); 
-        printf("Total Elapsed-MPI: %8.6f s\n",total_time); 
+        printf("Total Elapsed-HYBRID: %8.6f s\n",total_time); 
     }
     
     MPI_Finalize();

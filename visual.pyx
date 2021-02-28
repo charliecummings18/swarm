@@ -47,10 +47,6 @@ def main():
             else:
                 colours.append('black')
 
-
-            
-
-
         particles = ax.scatter([], [], color=[], s =1)
 
         def init():
@@ -122,11 +118,7 @@ def main():
             new_y = np.array(y_positions)
             new_z = np.array(z_positions)
 
-        
-            #points.set_offsets(np.c_[new_x,new_y])         
-            #points.set_3d_properties(new_z, 'z')
             points._offsets3d = (new_x, new_y, new_z)
-            #points.set_array(colours)
         
             return points,txt
       

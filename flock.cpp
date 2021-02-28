@@ -1,5 +1,4 @@
 #include "flock.h"
-#include "omp.h"
 void Flock :: flockSize (int numBoids){
     m_numBoids = numBoids;
 }
@@ -13,7 +12,7 @@ void Flock :: generate(int numBoids, std::string method) {
     if (method == "OMP"){
         #pragma omp parallel private(i, X, Y, Xvel, Yvel, Z, Zvel), shared(m_curr_boids)
         {
-            #pragma omp for
+            #pragma omp for schedule (static)
             for (i = 0; i < numBoids ; i++) {
                 
                 X = static_cast<double>(std::rand())*2*WIDTH/RAND_MAX - WIDTH;
@@ -27,7 +26,7 @@ void Flock :: generate(int numBoids, std::string method) {
             }
         }
     }
-    else if (method == "MPI"){
+    else if (method == "MPI" || method == "HYBRID"){
         for (i = 0; i < numBoids ; i++) {
                 
             X = static_cast<double>(std::rand())*2*WIDTH/RAND_MAX - WIDTH;

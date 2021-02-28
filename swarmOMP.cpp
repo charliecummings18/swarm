@@ -54,7 +54,6 @@ int main(int argc, char *argv[]) {
     // Generate birds in the flock with random positions  
     birds.generate(NUM_BOIDS,"OMP");
  
-
     // Write infoFile.csv file, this contains all relevant data which visual_2D/3D.pyx
     // needs to read
 
@@ -109,7 +108,7 @@ int main(int argc, char *argv[]) {
         }
     #pragma omp parallel private(k)
     {
-        #pragma omp for
+        #pragma omp for schedule(static)
         for (k = 0; k < NUM_BOIDS; k++) {
             birds.advance(birds.m_curr_boids[k]);
         }
@@ -121,6 +120,7 @@ int main(int argc, char *argv[]) {
     
 
     final = omp_get_wtime();
+    printf("Program Complete.\n"); 
     printf("Total Elapsed-OMP: %8.6f s\n",final-initial); 
     
     
