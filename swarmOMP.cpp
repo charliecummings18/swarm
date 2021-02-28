@@ -108,7 +108,7 @@ int main(int argc, char *argv[]) {
         }
     #pragma omp parallel private(k)
     {
-        #pragma omp for schedule(static)
+        #pragma omp for 
         for (k = 0; k < NUM_BOIDS; k++) {
             birds.advance(birds.m_curr_boids[k]);
         }

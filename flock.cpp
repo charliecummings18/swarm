@@ -10,9 +10,9 @@ void Flock :: generate(int numBoids, std::string method) {
     unsigned int seed = 88;
     std::srand(seed); 
     if (method == "OMP"){
-        #pragma omp parallel private(i, X, Y, Xvel, Yvel, Z, Zvel), shared(m_curr_boids)
+        #pragma omp parallel private(i, X, Y, Xvel, Yvel, Z, Zvel)
         {
-            #pragma omp for schedule (static)
+            #pragma omp for 
             for (i = 0; i < numBoids ; i++) {
                 
                 X = static_cast<double>(std::rand())*2*WIDTH/RAND_MAX - WIDTH;
@@ -22,7 +22,9 @@ void Flock :: generate(int numBoids, std::string method) {
                 Yvel = static_cast<double>(std::rand())*2*MAX_SPEED/RAND_MAX - MAX_SPEED;
                 Zvel = static_cast<double>(std::rand())*2*MAX_SPEED/RAND_MAX - MAX_SPEED;
                 #pragma omp critical
+                {
                 m_curr_boids.push_back(Boid(X, Y, Xvel, Yvel, i, Z, Zvel));
+                }
             }
         }
     }
